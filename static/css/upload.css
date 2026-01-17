@@ -1,0 +1,81 @@
+/* ========== FORMULÁR NA PRIDANIE BLOČKU ========== */
+.form_container {
+    max-width: 600px;
+    margin: 3em auto;
+    padding: 2.5em;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.form_container form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
+}
+
+.form_container input[type="file"] {
+    padding: 1em;
+    border: 2px dashed rgba(100, 124, 228, 0.5);
+    border-radius: 8px;
+    background-color: rgba(100, 124, 228, 0.05);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "AlanSans", sans-serif;
+}
+
+.form_container input[type="file"]:hover {
+    border-color: rgb(100, 124, 228);
+    background-color: rgba(100, 124, 228, 0.1);
+}
+
+.form_container button[type="submit"] {
+    padding: 1em 2em;
+    background: linear-gradient(135deg, rgb(100, 124, 228), rgb(160, 98, 221));
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    font-family: "AlanSans", sans-serif;
+}
+
+.form_container button[type="submit"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.form_container button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+/* ========== SPRÁVY ========== */
+.message {
+    max-width: 600px;
+    margin: 2em auto;
+    padding: 1.5em;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: #333;
+    font-size: 1.1em;
+    text-align: center;
+    white-space: pre-wrap;
+}
+
+/* ========== DEFAULT STRÁNKA ========== */
+.default_message {
+    max-width: 600px;
+    margin: 4em auto;
+    padding: 2em;
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    text-align: center;
+    color: white;
+    font-size: 1.3em;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}

@@ -1,0 +1,110 @@
+/* ========== BLOČKY ZOBRAZENIE ========== */
+.blocky_container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
+    max-width: 1200px;
+    margin: 2em auto;
+    padding: 0 2em;
+}
+
+.blocky_container ul {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    list-style: none;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.blocky_container ul:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.blocky_container li {
+    padding: 0.5em 1em;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.blocky_container li:first-child {
+    font-weight: bold;
+    color: rgb(100, 124, 228);
+}
+
+.blocky_container li:last-child {
+    font-weight: bold;
+    color: rgb(160, 98, 221);
+    background-color: rgba(160, 98, 221, 0.1);
+    border-radius: 8px;
+    padding: 0.5em 1em;
+}
+
+/* ========== RECEIPT CARD - TLAČIDLÁ ========== */
+
+/* Wrapper pre tlačidlá Detail a Delete */
+.receipt_card_buttons {
+    display: flex;
+    gap: 0.5em;
+    align-items: center;
+}
+
+/* Spoločné štýly pre tlačidlá */
+.btn_receipt_detail, .btn_receipt_delete {
+    padding: 0.7em 1.2em;
+    border: none;
+    border-radius: 8px;
+    font-family: "AlanSans", sans-serif;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Tlačidlo DETAIL */
+.btn_receipt_detail {
+    background: linear-gradient(135deg, rgb(100, 124, 228), rgb(160, 98, 221));
+    color: white;
+    box-shadow: 0 2px 8px rgba(100, 124, 228, 0.3);
+}
+
+.btn_receipt_detail:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(100, 124, 228, 0.5);
+}
+
+.btn_receipt_detail:active {
+    transform: translateY(0);
+}
+
+/* Tlačidlo DELETE (X) */
+.btn_receipt_delete {
+    background-color: #ff4757;
+    color: white;
+    font-size: 0.9em;
+    font-weight: bold;
+    padding: 0.7em 1em;
+}
+
+.btn_receipt_delete:hover {
+    background-color: #ff3838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.5);
+}
+
+.btn_receipt_delete:active {
+    transform: translateY(0);
+}
+
+
+.receipt_items p {
+    text-align: center;
+    color: #b30909;
+    padding: 1em;
+    margin: 0;
+}

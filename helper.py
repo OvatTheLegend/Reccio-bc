@@ -10,10 +10,10 @@ def save_new_receipt(data_dict):
     con = sqlite3.connect(database)
     cur = con.cursor()
 
-    #potrebuja previest datum a cas na iso format kvoli filtorvaniu
+    #need to switch from sk format to iso due to filetring later
     date = data_dict["date"]
     time = data_dict["time"]
-    #odignorovat sekundy
+    #ignore seconds
     time = time[:5]
 
     dt = datetime.strptime(f"{date} {time}", "%d.%m.%Y %H:%M")

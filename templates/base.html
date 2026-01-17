@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title> {% block title %}ComfYe-Blok{% endblock %}</title>
     <link rel="stylesheet" href="../static/css/main.css">
+    <!-- blok pre nacitanie dalsieho css -->
+    {% block css_addon %}{% endblock %}
 </head>
 <body>
 
@@ -27,5 +29,6 @@
 
     <!-- blok pre nacitanie konkretneho javascriptu pre konkretnu stranku-->
     {% block js_addon %}{% endblock %}
+    
 </body>
 </html>

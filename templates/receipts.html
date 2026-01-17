@@ -3,10 +3,15 @@
 <!-- nazov podstranky -->
 {% block title %}ComfYe-Blok - Moje Bločky{% endblock %}
 
-<!-- javascript -->
- {% block js_addon %}
- <script src="{{ url_for('static', filename='js/receipts.js') }}"></script>
- {% endblock %}
+<!-- vlastny css -->
+{% block css_addon %}
+ <link rel="stylesheet" href="{{ url_for('static', filename='css/receipts.css') }}"></link>
+{% endblock %}
+
+<!-- vlastny javascript -->
+{% block js_addon %}
+<script src="{{ url_for('static', filename='js/receipts.js') }}"></script>
+{% endblock %}
 
 <!-- teraz cely obsah podstranky -->
 {% block content %}

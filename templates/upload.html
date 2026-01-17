@@ -3,6 +3,17 @@
 <!-- nazov podstranky -->
 {% block title %}ComfYe-Blok{% endblock %}
 
+<!-- vlastny css -->
+{% block css_addon %}
+ <link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}"></link>
+{% endblock %}
+
+<!-- javascript -->
+ {% block js_addon %}
+ <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+ {% endblock %}
+
+
 <!-- teraz cely obsah podstranky -->
 {% block content %}
 
