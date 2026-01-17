@@ -40,14 +40,13 @@
 .blocky_container li:last-child {
     font-weight: bold;
     color: rgb(160, 98, 221);
-    background-color: rgba(160, 98, 221, 0.1);
     border-radius: 8px;
     padding: 0.5em 1em;
 }
 
 /* ========== RECEIPT CARD - TLAČIDLÁ ========== */
 
-/* Wrapper pre tlačidlá Detail a Delete */
+/* wrapper pre obe detail a remove*/
 .receipt_card_buttons {
     display: flex;
     gap: 0.5em;
@@ -70,7 +69,6 @@
 .btn_receipt_detail {
     background: linear-gradient(135deg, rgb(100, 124, 228), rgb(160, 98, 221));
     color: white;
-    box-shadow: 0 2px 8px rgba(100, 124, 228, 0.3);
 }
 
 .btn_receipt_detail:hover {
@@ -84,7 +82,7 @@
 
 /* Tlačidlo DELETE (X) */
 .btn_receipt_delete {
-    background-color: #ff4757;
+    background-color: #dc0d1e;
     color: white;
     font-size: 0.9em;
     font-weight: bold;
@@ -99,12 +97,4 @@
 
 .btn_receipt_delete:active {
     transform: translateY(0);
-}
-
-
-.receipt_items p {
-    text-align: center;
-    color: #b30909;
-    padding: 1em;
-    margin: 0;
 }

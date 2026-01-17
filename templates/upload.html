@@ -17,12 +17,38 @@
 <!-- teraz cely obsah podstranky -->
 {% block content %}
 
-<div class="form_container">
+<!-- dva typy butonov - funguju ako prepinac medzi pdf a manual a fotkou -->
+<div class="upload_options">
+    <button id="nav-pdf" class="option_button active" onclick="switchOption('pdf')"> Nahrať pdf </button>
+    <button id= "nav-photo" class="option_button" onclick="switchOption('photo')"> Nahrať fotku</button>
+    <button id= "nav-manual" class="option_button" onclick="switchOption('manual')"> Nahrať manuálne</button>
+
+</div>
+
+<!-- teraz jednotlive možnosti, default zobbrazenie je pdf -->
+<div id="pdf-option" class="option_content active">
+    <div class="form_container_pdf">
         <form action="/upload" method="post" enctype="multipart/form-data" required>
             <input type="file" name="receipt_file" accept=".pdf">
             <button type="submit">Nahraj súbor</button>
         </form>
+    </div>
 </div>
+
+<!-- nahrať fotku -->
+<div id="photo-option" class="option_content">
+    <div class="form_container_pdf">
+    <p>TO BE DONE</p>
+    </div>
+</div>
+
+<!-- manualne nahranie blocku-->
+<div id="manual-option" class="option_content">
+    <div class="form_container_pdf">
+    <p>TO BE DONE</p>
+    </div>
+</div>
+
 
 {% if message %}
     <div class="message">

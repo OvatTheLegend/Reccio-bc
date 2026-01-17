@@ -1,6 +1,54 @@
-/* ========== FORMULÁR NA PRIDANIE BLOČKU ========== */
-.form_container {
-    max-width: 600px;
+/* DEFUALT CONTAINER SPOLOCNE PRE OBE */
+.upload_options {
+    display: flex;
+    gap: 1em;
+    justify-content: center;
+    margin: 2em auto;
+    max-width: 800px;
+}
+
+.option_button {
+    flex: 1;
+    padding: 1em 1.5em;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    font-size: 1.05em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "AlanSans", sans-serif;
+}
+
+.option_button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.option_button.active {
+    background-color: rgba(255, 255, 255, 0.95);
+    color: rgb(100, 124, 228);
+    border-color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.option_content {
+    display: none;
+}
+
+.option_content.active {
+    display: block;
+}
+
+.option_content p {
+    text-align: center;
+    color: #000000;
+    font-size: 1em;
+}
+
+/* ========== FORMULÁR NA PRIDANIE BLOČKU PDF ========== */
+.form_container_pdf {
+    max-width: 800px;
     margin: 3em auto;
     padding: 2.5em;
     background-color: rgba(255, 255, 255, 0.95);
@@ -8,13 +56,13 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-.form_container form {
+.form_container_pdf form {
     display: flex;
     flex-direction: column;
     gap: 1.5em;
 }
 
-.form_container input[type="file"] {
+.form_container_pdf input[type="file"] {
     padding: 1em;
     border: 2px dashed rgba(100, 124, 228, 0.5);
     border-radius: 8px;
@@ -24,12 +72,12 @@
     font-family: "AlanSans", sans-serif;
 }
 
-.form_container input[type="file"]:hover {
+.form_container_pdf input[type="file"]:hover {
     border-color: rgb(100, 124, 228);
     background-color: rgba(100, 124, 228, 0.1);
 }
 
-.form_container button[type="submit"] {
+.form_container_pdf button[type="submit"] {
     padding: 1em 2em;
     background: linear-gradient(135deg, rgb(100, 124, 228), rgb(160, 98, 221));
     color: white;
@@ -43,18 +91,20 @@
     font-family: "AlanSans", sans-serif;
 }
 
-.form_container button[type="submit"]:hover {
+.form_container_pdf button[type="submit"]:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
-.form_container button[type="submit"]:active {
+.form_container_pdf button[type="submit"]:active {
     transform: translateY(0);
 }
 
+/* ========== FORMULÁR NA PRIDANIE BLOČKU MANUAL ========== */
+
 /* ========== SPRÁVY ========== */
 .message {
-    max-width: 600px;
+    max-width: 800px;
     margin: 2em auto;
     padding: 1.5em;
     background-color: rgba(255, 255, 255, 0.95);
@@ -66,9 +116,9 @@
     white-space: pre-wrap;
 }
 
-/* ========== DEFAULT STRÁNKA ========== */
+/* ========== DEFAULT sprava ========== */
 .default_message {
-    max-width: 600px;
+    max-width: 800px;
     margin: 4em auto;
     padding: 2em;
     background-color: rgba(255, 255, 255, 0.15);
