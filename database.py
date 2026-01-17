@@ -16,12 +16,13 @@ def init_database():
         shop_name TEXT NOT NULL,
         date TEXT NOT NULL,
         time TEXT NOT NULL,
+        datetime_iso TEXT NOT NULL,
         prize REAL NOT NULL,
         UNIQUE(shop_name,date,time,prize)
         )""")
 
 
-    #creating table for items form e-blocks
+    #creating table for items from e-blocks
     cur.execute(""" CREATE TABLE IF NOT EXISTS items(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_name TEXT NOT NULL,

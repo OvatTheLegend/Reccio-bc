@@ -12,20 +12,29 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 #initialization of databse
 database.init_database()
 
-#route for default page
+
+# ------------------------------------------------- ROUTES -------------------------------------------------------------
+
+# DOMOV
 @app.route('/')
 def index():
     return render_template('index.html')
 
-#route for menu subpage Moje bločky
-@app.route('/moje_blocky', methods=['GET','POST'])
+# MOJE BLOCKY
+@app.route('/moje_blocky')
 def moje_blocky():
-    return render_template('receipts.html')
+    receipts = helper.get_receipts()
+    return render_template('receipts.html', receipts = receipts)
+
+@app.route('/stats')
+def stats():
+    return render_template('stats.html')
+
 
 #route for adding a new receipt into database: -> GET if default
 #                                              -> POST if pdf file was submitted
-@app.route('/add_blocky', methods=['GET','POST'])
-def add_blocky():
+@app.route('/upload', methods=['GET','POST'])
+def upload():
 
     message = ""
     #if pdf was submited
@@ -65,15 +74,13 @@ def add_blocky():
             else:
                 message = "Nepodarilo sa uložiť bloček"
 
-    return render_template('receipts.html', mode="add", message = message)
+    return render_template('upload.html',  message = message)
 
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
 
-#route for requesting to show receipt in receipt table
-@app.route('/show_blocky')
-def show_blocky():
-    #helper function to get all existing receipts in receipts table
-    receipts = helper.get_all_receipts()
-    return render_template('receipts.html', mode="show", receipts = receipts)    
+# --------------------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     print("Aplikacia beži:")

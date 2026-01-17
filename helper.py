@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 
 database = 'receipts.db'
 
@@ -9,12 +10,21 @@ def save_new_receipt(data_dict):
     con = sqlite3.connect(database)
     cur = con.cursor()
 
+    #potrebuja previest datum a cas na iso format kvoli filtorvaniu
+    date = data_dict["date"]
+    time = data_dict["time"]
+    #odignorovat sekundy
+    time = time[:5]
+
+    dt = datetime.strptime(f"{date} {time}", "%d.%m.%Y %H:%M")
+    datetime_iso = dt.strftime("%Y-%m-%d %H:%M:%S")
+
     try:
         cur.execute(
             """
-            INSERT INTO receipts(shop_name, date, time, prize)
-            VALUES (?, ?, ?, ?)
-            """, (data_dict["shop_name"],data_dict["date"],data_dict["time"],data_dict["prize"])
+            INSERT INTO receipts(shop_name, date, time, datetime_iso, prize)
+            VALUES (?, ?, ?, ?, ?)
+            """, (data_dict["shop_name"],data_dict["date"],data_dict["time"], datetime_iso, data_dict["prize"])
             )
 
         #getting last added row to table
@@ -38,6 +48,7 @@ def save_new_items(data_list_dict, receipt_id):
     con = sqlite3.connect(database)
     cur = con.cursor()
 
+
     for data_item in data_list_dict:
         cur.execute(
         """
@@ -53,12 +64,17 @@ def save_new_items(data_list_dict, receipt_id):
 
     return
 
-def get_all_receipts():
+def get_receipts():
 
     con = sqlite3.connect(database)
+
+    #aby sa sa vracal dict-like obejkt, kvoli prehladnosti v html
+    con.row_factory = sqlite3.Row
+
     cur = con.cursor()
 
-    cur.execute("""SELECT * FROM receipts""")
+    cur.execute("""SELECT * FROM receipts
+    ORDER BY datetime_iso DESC LIMIT 20""")
     receipts = cur.fetchall()
     con.close()
 
