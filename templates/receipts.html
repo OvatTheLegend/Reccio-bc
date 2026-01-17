@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pdf-blocky</title>
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/main.css')}}">
+    <script src="{{ url_for('static', filename='js/receipt.js') }}"></script>
+</head>
+<body>
+
+    <nav class="header_container">
+        <h1 class="main_title">ComfYe-Blok</h1>
+        <ul class="nav_container">
+            <li><a href="/" class="active">Domov</a></li>
+            <li><a href="/moje_blocky">Moje Bločky</a></li>
+
+        </ul>
+    </nav>
+
+    <ul class="show_blocky_nav_container">
+        <li><a href="/show_blocky">Zobraziť bločky</a></li>
+        <li><a href="/add_blocky">Pridat blocek</a></li>
+    </ul>
+
+
+    <div>
+        {% if mode == "add" %}
+            <div class="form_container">
+                <form action="/add_blocky" method="post" enctype="multipart/form-data" required>
+                <input type="file" name="receipt_file" accept=".pdf">
+                <button type="submit">Nahraj súbor</button>
+                </form>
+            </div>
+            
+            {% if message %}
+            <div class="message">
+                {{ message }}
+            </div>
+            {% endif %}
+
+        {% elif mode == "show" %}
+            <div class="blocky_container">
+                {% for receipt in receipts %}
+                    <ul class="receipt_card">
+
+                        <!-- informacie o udajoch blocku -->
+                        <li class="receipt_shop"> {{ receipt[1] }} </li>
+                        <li class="receipt_date"> {{ receipt[2] }} </li>
+                        <li class="receipt_time"> {{ receipt[3] }} </li>
+                        <li class="receipt_price"> {{ receipt[4] }} € </li>
+
+                        <li class="receipt_card_buttons">
+                            <!-- detail blocku -->
+                            <button class="btn_receipt_detail" 
+                            data-id=" {{ receipt[0]}}"
+                            onclick="showDetails(this.dataset.id)">
+                            Detail ▼
+                            </button>
+                         
+                            <!-- odstranenie blocku -->
+                            <button class="btn_receipt_delete"
+                            data-id=" {{ receipt[0]}}"
+                            onclick="deleteReceipt(this.dataset.id)">
+                            X
+                            </button>
+                        </li>
+                    </ul>
+                {% endfor %}
+            </div>
+            
+        {% else %}
+            <div class="default_message">
+                <p>vyber si akciu prosim</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <br>
+
+<hr>
+</body>
+</html>
