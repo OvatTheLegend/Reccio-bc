@@ -46,7 +46,7 @@
     font-size: 1em;
 }
 
-/* ========== FORMULÁR NA PRIDANIE BLOČKU PDF ========== */
+/* formular na pridanie blocku*/
 .form_container_pdf {
     max-width: 800px;
     margin: 3em auto;
@@ -100,9 +100,9 @@
     transform: translateY(0);
 }
 
-/* ========== FORMULÁR NA PRIDANIE BLOČKU MANUAL ========== */
 
-/* ========== SPRÁVY ========== */
+
+/* sprava*/
 .message {
     max-width: 800px;
     margin: 2em auto;
@@ -116,16 +116,3 @@
     white-space: pre-wrap;
 }
 
-/* ========== DEFAULT sprava ========== */
-.default_message {
-    max-width: 800px;
-    margin: 4em auto;
-    padding: 2em;
-    background-color: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    text-align: center;
-    color: white;
-    font-size: 1.3em;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}

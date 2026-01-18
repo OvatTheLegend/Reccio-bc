@@ -3,7 +3,103 @@
 <!-- nazov podstranky -->
 {% block title %}ComfYe-Blok{% endblock %}
 
+<!-- vlastny css -->
+{% block css_addon %}
+ <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}"></link>
+{% endblock %}
+
 <!-- teraz cely obsah podstranky -->
 {% block content %}
+
+<!-- uvitaci nadpis -->
+<!-- <h1 class="greeting">Vitaj späť! Tu je tvoj súhrn</h1> -->
+
+<!-- container pre statistiky za mesiac -->
+<h1 class="stats_h1">Štatistiky za tento mesiac:</h1>
+
+<div class="stats_container">
+    <!-- suma -->
+    <div class="stats_card">
+        <div class="stat_label">Celkom </div>
+        <div class="stat_value">400€</div>
+    </div>
+     <!-- pocet nakupov -->
+    <div class="stats_card">
+        <div class="stat_label">Pocet nakupov</div>
+        <div class="stat_value">16</div>
+    </div>
+     <!-- primer -->
+    <div class="stats_card">
+        <div class="stat_label">Priemer</div>
+        <div class="stat_value">25€</div>
+    </div>
+     <!-- top obchod -->
+    <div class="stats_card">
+        <div class="stat_label">Top Obchod</div>
+        <div class="stat_value">TERNO</div>
+    </div>
+</div>
+
+<!-- kontajner pre grafy a kategorie-->
+<div class="chart_container">
+    <div class="chart_card">
+        <h2>Výdavky za mesiac</h2>
+        <div class="chart_month">
+            Graf 1
+        </div>
+    </div>
+
+    <div class="chart_card">
+        <h2>Top kategórie</h2>
+        <div class="chart_category">
+            Graf 2
+        </div>
+    </div>
+</div>
+
+<!-- container pre posledne blocky poslednych nakupov-->
+<div class="receipts_container">
+    <div class="receipts_card">
+        <h2>Posledné nákupy</h2>
+        <div class="top_receipts">
+            {% if last_receipts %}
+                {% for last_receipt in last_receipts %}
+                    <ul>
+                    <!-- informacie o udajoch blocku -->
+                        <li class="receipt_shop"> {{ last_receipt.shop_name }} </li>
+                        <li class="receipt_date"> {{ last_receipt.date }} </li>
+                        <li class="receipt_time"> {{ last_receipt.time }} </li>
+                        <li class="receipt_price"> {{ last_receipt.prize }} € </li>
+                    </ul>
+                {% endfor %}
+            {% else %}
+                <div class="default_message">
+                    <p>Zatiaľ nemáte žiadne bločky</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="receipts_card">
+        <h2>Najdrahšie nákupy</h2>
+        <div class="top_receipts">
+            {% if expensive_receipts %}
+                {% for expensive_receipt in expensive_receipts %}
+                    <ul>
+                    <!-- informacie o udajoch blocku -->
+                        <li class="receipt_shop"> {{ expensive_receipt.shop_name }} </li>
+                        <li class="receipt_date"> {{ expensive_receipt.date }} </li>
+                        <li class="receipt_time"> {{ expensive_receipt.time }} </li>
+                        <li class="receipt_price"> {{ expensive_receipt.prize }} € </li>
+                    </ul>
+                {% endfor %}
+            {% else %}
+                <div class="default_message">
+                    <p>Zatiaľ nemáte žiadne bločky</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
 {% endblock %}

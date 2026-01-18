@@ -64,7 +64,7 @@ def save_new_items(data_list_dict, receipt_id):
 
     return
 
-def get_receipts():
+def get_all_receipts():
 
     con = sqlite3.connect(database)
 
@@ -74,12 +74,43 @@ def get_receipts():
     cur = con.cursor()
 
     cur.execute("""SELECT * FROM receipts
-    ORDER BY datetime_iso DESC LIMIT 20""")
+    ORDER BY datetime_iso DESC""")
     receipts = cur.fetchall()
     con.close()
 
     return receipts
 
+def get_last_5_receipts():
+
+    con = sqlite3.connect(database)
+
+    #aby sa sa vracal dict-like obejkt, kvoli prehladnosti v html
+    con.row_factory = sqlite3.Row
+
+    cur = con.cursor()
+
+    cur.execute("""SELECT * FROM receipts
+    ORDER BY datetime_iso DESC LIMIT 5""")
+    receipts = cur.fetchall()
+    con.close()
+
+    return receipts
+
+def get_top_5_expensive():
+
+    con = sqlite3.connect(database)
+
+    #aby sa sa vracal dict-like obejkt, kvoli prehladnosti v html
+    con.row_factory = sqlite3.Row
+
+    cur = con.cursor()
+
+    cur.execute("""SELECT * FROM receipts
+    ORDER BY datetime_iso DESC LIMIT 5""")
+    receipts = cur.fetchall()
+    con.close()
+
+    return receipts
 #testing function
 def delete_receipt():
     

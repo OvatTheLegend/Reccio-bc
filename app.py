@@ -18,12 +18,15 @@ database.init_database()
 # DOMOV
 @app.route('/')
 def index():
-    return render_template('index.html')
+    last_receipts = helper.get_last_5_receipts()
+    expensive_receipts = helper.get_top_5_expensive()
+
+    return render_template('index.html', last_receipts = last_receipts, expensive_receipts = expensive_receipts)
 
 # MOJE BLOCKY
 @app.route('/moje_blocky')
 def moje_blocky():
-    receipts = helper.get_receipts()
+    receipts = helper.get_all_receipts()
     return render_template('receipts.html', receipts = receipts)
 
 @app.route('/stats')

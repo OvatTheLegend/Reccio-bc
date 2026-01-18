@@ -98,3 +98,9 @@
 .btn_receipt_delete:active {
     transform: translateY(0);
 }
+
+.default_message {
+    text-align: center;
+    color:white;
+    font-size: 3em;
+}

@@ -1,0 +1,191 @@
+/* greeting sprava, zatial skryta*/
+.greeting {
+    text-align: center;
+    padding: 1em;
+    font-size: 3em;
+    color: white;
+}
+
+/*container pre 4 karticky na statisticke udaje */
+.stats_container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1em;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    margin: 1em auto;
+    max-width: 1300px;
+}
+
+.stats_h1 {
+    text-align: center;
+    padding: 1em;
+    font-size: 3em;
+    color: white;
+}
+
+.stats_card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    gap: 1em;
+    max-width: 250px;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 2em;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    
+}
+
+.stats_card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+/*udaje v karticke*/
+.stat_label {
+    font-size: 2em;
+}
+
+.stat_value {
+    font-size: 3em;
+}
+
+/*container pre grafy*/
+.chart_container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1em;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    margin: 3em auto;
+
+    max-width: 1300px;
+}
+
+.chart_card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    gap: 1em;
+    max-width: 600px;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 2em;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.chart_card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.chart_card h1 {
+    font-size: 2em;
+}
+
+.chart_month {
+    display: flex;
+    font-size: 6em;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.chart_category {
+    display: flex;
+    font-size: 6em;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/*kontainer pre blocky*/
+.receipts_container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1em;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    margin: 3em auto;
+    max-width: 1300px;
+}
+
+.receipts_card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    gap: 1em;
+    max-width: 600px;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 2em;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+/*  zobrazenie blockov */
+.top_receipts {
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    background: linear-gradient(150deg, rgb(100, 124, 228) 0%, rgb(160, 98, 221) 100%);
+    padding: 1em;
+    gap: 1.5em;
+    width: 100%;
+}
+
+.top_receipts ul {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    list-style: none;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.top_receipts ul:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.top_receipts li {
+    padding: 0.5em 1em;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.top_receipts li:first-child {
+    font-weight: bold;
+    color: rgb(100, 124, 228);
+}
+
+.top_receipts li:last-child {
+    font-weight: bold;
+    color: rgb(160, 98, 221);
+    border-radius: 8px;
+    padding: 0.5em 1em;
+}
+
+.default_message {
+    text-align: center;
+    color:white
+}
