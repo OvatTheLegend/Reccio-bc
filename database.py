@@ -10,15 +10,28 @@ def init_database():
     #for executing sql statements, we need database cursor
     cur = con.cursor()
 
+    #user table
+    cur.execute(""" CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password_hashed TEXT NOT NULL,
+        email_addres TEXT,
+        email_2fa_password TEXT
+        )""")
+
+
     #craeting table for e-block
     cur.execute(""" CREATE TABLE IF NOT EXISTS receipts(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
         shop_name TEXT NOT NULL,
         date TEXT NOT NULL,
         time TEXT NOT NULL,
         datetime_iso TEXT NOT NULL,
         prize REAL NOT NULL,
-        UNIQUE(shop_name,date,time,prize)
+        parse_method TEXT,
+        UNIQUE(user_id,shop_name,date,time,prize),
+        FOREIGN KEY (user_id) REFERENCES users(id)
         )""")
 
 
@@ -37,7 +50,7 @@ def init_database():
     con.commit()
     con.close
     
-    print("Database receipts,items created!")
+    print("Database user,receipts,items created!")
 
 def get_connection():
     return sqlite3.connect(database)

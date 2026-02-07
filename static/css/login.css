@@ -1,0 +1,90 @@
+@font-face {
+    font-family: "AlanSans";
+    src: url("/static/fonts/AlanSans.ttf") format("truetype");
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: "Boldonse";
+    src: url("/static/fonts/Boldonse.ttf") format("truetype");
+} 
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    font-family: "AlanSans", sans-serif;
+    background: linear-gradient(150deg, rgb(100, 124, 228) 0%, rgb(160, 98, 221) 100%);
+    background-attachment: fixed;
+}
+
+.option_content {
+    display: none;
+}
+
+.option_content.active {
+    display: block;
+}
+
+.auth_form_container form{
+    display:flex;
+    flex-direction: column;
+    max-width: 600px;
+    gap: 1em;
+    margin: 3em auto;
+    padding: 2.5em;
+    background-color: rgba(255, 255, 255, 0.945);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+form h2 {
+    font-size: 2em;
+    text-align: center;
+}
+
+.input_line {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+}
+
+.auth_form_container form button[type="submit"] {
+    padding: 0.5em 2em;
+    background: linear-gradient(135deg, rgb(100, 124, 228), rgb(160, 98, 221));
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    font-family: "AlanSans", sans-serif;
+}
+
+.auth_form_container form button[type="submit"]:hover  {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+form input {
+    padding: 0.5em 0.5em;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.error_msg {
+    color:red;
+    text-align: left;
+    font-size: small;
+}

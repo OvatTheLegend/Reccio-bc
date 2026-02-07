@@ -1,0 +1,98 @@
+<!-- najrpv rozsirime base -->
+{% extends "base.html" %}
+
+<!-- nazov podstranky -->
+{% block title %}Prihlásenia / registrácia {% endblock %}
+
+<!-- vlastny css -->
+{% block css_addon %}
+ <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
+
+<!-- javascript -->
+ {% block js_addon %}
+ <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+ {% endblock %}
+
+<!-- teraz cely obsah podstranky -->
+{% block content %}
+
+
+<!-- login content -->
+<div id="signin-option" class="option_content {% if login_type != 'register' %}active{% endif %}">
+    <div class="auth_form_container">
+        <form action="/" method="post" autocomplete="off">
+            <!-- co sa poslalo, signin alebo register -->
+            <input type="hidden" name="form_type" value="signin">
+
+            <h2>Prihlásenie</h2>
+            <!-- meno -->
+            <div class="input_line">
+                <label for="username_signin">Meno/prezývka</label>
+                <input type="text" name="username_signin">
+            </div>
+            <!-- heslo -->
+            <div class="input_line">
+                <label for="password_signin">Heslo</label>
+                <input type="password" name="password_signin">
+            </div>
+
+                {% if error_msg and login_type == 'signin' %}
+                <span class="error_msg"> {{ error_msg }}</span>
+                {% endif %}
+
+            <button type="submit">Prihlásiť sa</button>
+
+            <!-- alternativa na zaregistrovanie/prihlasenie -> return false aby sa pri kliknuti nerefreshovala stranka-->
+            <div class="alternative">
+                <span>Nemáte účet?</span>
+                <a href="#" onclick="switchAuth('register')">Registrovať sa</a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<div id="registration-option" class="option_content {% if login_type == 'register' %}active{% endif %}">
+    <div class="auth_form_container">
+        <form action="/" method="post" autocomplete="off">
+            <!-- co sa poslalo, signin alebo register -->
+            <input type="hidden" name="form_type" value="register">
+
+            <h2>Registrácia</h2>
+
+            <!-- meno -->
+            <div class="input_line">
+                <label for="username_register">Meno/prezývka</label>
+                <input type="text" name="username_register" placeholder="example123">
+            </div>
+
+            <!-- heslo -->
+            <div class="input_line">
+                <label for="password_register">Heslo</label>
+                <input type="password" name="password_register">
+            </div>
+
+            <!-- kontrola hesla -->
+            <div class="input_line">
+                <label for="password_repeat_register">Potvrďte heslo</label>
+                <input type="password" name="password_repeat_register">
+            </div>
+
+            {% if error_msg and login_type == 'register' %}
+                <span class="error_msg"> {{ error_msg }}</span>
+            {% endif %}
+
+            <button type="submit">Zaregistrovať sa</button>
+            
+            <!-- alternativa na zaregistrovanie/prihlasenie -> return false aby sa pri kliknuti nerefreshovala stranka-->
+            <div class="alternative">
+                <span>Máte už učet?</span>
+                <a href="#" onclick="switchAuth('signin')">Prihlásiť sa</a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+{% endblock %}

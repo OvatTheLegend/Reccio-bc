@@ -4,24 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title> {% block title %}ComfYe-Blok{% endblock %}</title>
-    <link rel="stylesheet" href="../static/css/base.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     <!-- blok pre nacitanie dalsieho css -->
     {% block css_addon %}{% endblock %}
 </head>
 <body>
+    {% if show_menu  %}
+        <!-- hlavne navigacne menu -->
+        <nav class="header_container">
+            <h1 class="main_title">ComfYe-Blok</h1>
+            <ul class="nav_container">
+                <li><a href="/home" class="nav_button {% if request.path == '/home' %}active{% endif %}">Domov</a></li>
+                <li><a href="/moje_blocky" class="nav_button {% if request.path == '/moje_blocky' %}active{% endif %}">Moje Bločky</a></li>
+                <li><a href="/stats" class="nav_button {% if request.path == '/stats' %}active{% endif %}">Štatistiky</a></li>
+                <li><a href="/upload" class="nav_button {% if request.path == '/upload' %}active{% endif %}">Nahrať bloček</a></li>
+                <li><a href="/settings" class="nav_button {% if request.path == '/settings' %}active{% endif %}">Nastavenia</a></li>
 
-    <!-- hlavne navigacne menu -->
-    <nav class="header_container">
-        <h1 class="main_title">ComfYe-Blok</h1>
-        <ul class="nav_container">
-            <li><a href="/" {% if request.path == '/' %} class="active" {% endif %}>Domov</a></li>
-            <li><a href="/moje_blocky" {% if request.path == '/moje_blocky' %} class="active" {% endif %}>Moje Bločky</a></li>
-            <li><a href="/stats" {% if request.path == '/stats' %} class="active" {% endif %}>Štatistiky</a></li>
-            <li><a href="/upload" {% if request.path == '/upload' %} class="active" {% endif %}>Nahrať bloček</a></li>
-            <li><a href="/settings" {% if request.path == '/settings' %} class="active" {% endif %}>Nastavenia</a></li>
-        </ul>
-    </nav>
-
+                <!-- ak je pouzivatel prihlaseny zobrazi sa jeho meno v menu, spolu s logout -->
+                {% if logged_in %}
+                    <li class="user_place">
+                        <span class="username"> {{ username }} </span>
+                        <a href="/logout" class="logout">➜]</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif  %}
     <main>
         <!-- main content celej podstranky-->
         {% block content %}{% endblock %}

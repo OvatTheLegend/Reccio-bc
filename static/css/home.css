@@ -15,8 +15,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0;
-    margin: 1em auto;
-    max-width: 1300px;
+    margin: 0 auto;
+    max-width: 1200px;
 }
 
 .stats_h1 {
@@ -33,7 +33,8 @@
     align-items: start;
     justify-content: start;
     gap: 1em;
-    max-width: 250px;
+    max-width: 300px;
+    min-height: 300px;
     background-color: rgba(255, 255, 255, 0.95);
     padding: 2em;
     border-radius: 12px;
@@ -65,9 +66,9 @@
     align-items: center;
     justify-content: space-between;
     padding: 0;
-    margin: 3em auto;
+    margin: 2em auto;
 
-    max-width: 1300px;
+    max-width: 1200px;
 }
 
 .chart_card {
@@ -119,8 +120,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0;
-    margin: 3em auto;
-    max-width: 1300px;
+    margin: 2em auto;
+    max-width: 1200px;
 }
 
 .receipts_card {
