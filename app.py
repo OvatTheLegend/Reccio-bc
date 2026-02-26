@@ -1,14 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for, session
-import random, database, helper, os, parser
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+import helper, parser, database
+import random
+import os
+import config
+import webbrowser
+import threading
+import time
 
 
 app = Flask(__name__)
 app.secret_key = 'moj_tajny_klucik_123'
 
-#if uploads folder does not exist, create one,
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+#cesty z config suboru
+app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
 
 #initialization of databse
 database.init_database()
@@ -47,12 +51,22 @@ def login():
 
             username = request.form.get('username_signin')
             password = request.form.get('password_signin')
+            remember_me = request.form.get('remember_me')
             is_valid, user_id, error_msg = helper.validate_signin(username,password)
             
             if not is_valid:
                 return render_template('login.html', show_menu = False, login_type = 'signin', error_msg = error_msg)
             
             #vsetko prebehlo uspesne, dame usera do session, redirect na domovsku stranku
+            #ak je zakliknute zostat prihlaseny
+            if remember_me:
+                session.permanent = True
+                print("zapamatal som si")
+
+            else:
+                session.permanent = False
+                print("odhlasim po zatvoreni")
+
             session['user_id'] = user_id
             session['username'] = username
 
@@ -77,6 +91,10 @@ def login():
                 return render_template('login.html', show_menu=False, login_type = 'register',error_msg = 'Pri registrácii sa vyskytla chyba')
 
             #vsetko prebehlo uspesne, usera na session, redirect na domovsku stranku
+            #po zatvoreni stranky odhlasi pouzivatela
+            session.permanent = False
+            print("odhlasim po zatvoreni")
+
             session['user_id'] = user_id
             session['username'] = username
 
@@ -93,6 +111,9 @@ def logout():
 # DOMOV
 @app.route('/home')
 def home():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
     user_id = session.get('user_id')
     last_receipts = helper.get_last_5_receipts(user_id)
     expensive_receipts = helper.get_top_5_expensive(user_id)
@@ -102,19 +123,57 @@ def home():
 # MOJE BLOCKY
 @app.route('/moje_blocky')
 def moje_blocky():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
     user_id = session.get('user_id')
     receipts = helper.get_all_receipts(user_id)
     return render_template('receipts.html', receipts = receipts, show_menu = True)
 
+@app.route('/delete_receipt/<int:receipt_id>', methods=['DELETE'])
+def delete_receipt(receipt_id):
+
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session.get('user_id')
+
+    deleted = helper.delete_receipt(receipt_id, user_id)
+
+    #ak sa nevymazal, tak chyba
+    if deleted == 0:
+        return jsonify({"error" : "Neautorizované"}), 403
+    #vraciame json object nie render (kvoli dynamickosti stranke -> bez zbytocneho reloadu)
+    
+    return jsonify({"success": True})
+
+@app.route('/receipt_details/<int:receipt_id>')
+def receipt_details(receipt_id):
+    
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session.get('user_id')
+
+
+
+
 @app.route('/stats')
+
 def stats():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
     return render_template('stats.html', show_menu = True)
 
 
 #route for adding a new receipt into database: -> GET if default
-#                                              -> POST if pdf file was submitted
+#                                              -> POST if file was submitted
 @app.route('/upload', methods=['GET','POST'])
 def upload():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
 
     message = ""
     #if pdf was submited
@@ -124,8 +183,15 @@ def upload():
 
         if file and file.filename != "":
 
-            #getting path of folder to save submitted file and saving it there
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            user_id = session.get('user_id')
+            
+            #creating unique folder for specific user
+            user_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'user{user_id}')
+            os.makedirs(user_folder, exist_ok=True)
+
+            #saving file (FOR FUTURE ADD TIMESTAMP TO PREVENT SAME NAME FILE)
+            temp_filename = f'temp_{file.filename}'
+            file_path = os.path.join(user_folder, temp_filename)
             file.save(file_path)
 
             #extraction of text from pdf, parsing, 
@@ -144,24 +210,53 @@ def upload():
                     user_id = session.get('user_id')
                     receipt_id = helper.save_new_receipt(parsed_receipt, user_id, "manual")
                     if receipt_id is not None:
+                        #rename the file_pre-saved
+                        final_filename = f'r_{receipt_id}.pdf'
+                        final_file_path = os.path.join(user_folder,final_filename)
+                        os.rename(file_path, final_file_path)
+
+                        #save items 
                         helper.save_new_items(parsed_items, receipt_id)
                         message = "Bloček bol úspešne uložený"
                     else: message = "Bloček už existuje"
                 
                 else:
+                    #delete temporary file if not sucess
+                    os.remove(file_path)
                     message = "Nepodarilo sa uložiť položky bločku"
 
             else:
+                os.remove(file_path)
                 message = "Nepodarilo sa uložiť bloček"
 
     return render_template('upload.html',  message = message, show_menu = True)
 
 @app.route('/settings')
 def settings():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     return render_template('settings.html', show_menu = True)
 
 # --------------------------------------------------------------------------------------------------------------
 
+#automaticke otvorenie prehliadaca pri spusteni appky
+def open_webbrowser():
+    time.asleep(2)
+    webbrowser.open('http://localhost:5000')
+
 if __name__ == '__main__':
-    print("Aplikacia beži:")
+    print("=" * 60)
+    print("🚀 ComfyeBlok sa spúšťa...")
+    print("=" * 60)
+    print("📂 Dáta sú uložené v:")
+    print(f"   {config.DATA_DIR}")
+    print("=" * 60)
+    print("🌐 Appka beží na: http://localhost:5000")
+    print("💡 Pre ukončenie stlač Ctrl+C")
+    print("=" * 60)
+
+    #otvori prehlaidac
+    threading.Thread(target=open_webbrowser, daemon=True).start
+    
+    #spusti flask s debugom
     app.run(debug=True)

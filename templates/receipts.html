@@ -19,7 +19,7 @@
 <div class="blocky_container">
     {% if receipts %}
         {% for receipt in receipts %}
-            <ul>
+            <ul id="receipt-{{ receipt.id }}">
                     <!-- informacie o udajoch blocku -->
                 <li class="receipt_shop"> {{ receipt.shop_name }} </li>
                 <li class="receipt_date"> {{ receipt.date }} </li>
@@ -35,7 +35,7 @@
                 
                     <!-- odstranenie blocku -->
                     <button class="btn_receipt_delete"
-                    data-id=" {{ receipt.id }}"
+                    data-id="{{receipt.id }}"
                     onclick="deleteReceipt(this.dataset.id)">
                     X
                     </button>

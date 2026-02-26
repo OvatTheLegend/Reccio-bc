@@ -1,7 +1,8 @@
 import sqlite3
 from datetime import datetime
+import config
 
-database = 'receipts.db'
+database = config.DATABASE_PATH
 
 def init_database():
     #creating connection to database
@@ -43,7 +44,7 @@ def init_database():
         prize REAL NOT NULL,
         category TEXT NOT NULL,
         receipt_id INTEGER NOT NULL,
-        FOREIGN KEY (receipt_id) REFERENCES receipts(id)
+        FOREIGN KEY (receipt_id) REFERENCES receipts(id) ON DELETE CASCADE
         )""")
 
     #commiting changes

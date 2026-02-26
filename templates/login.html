@@ -37,10 +37,18 @@
                 <input type="password" name="password_signin">
             </div>
 
-                {% if error_msg and login_type == 'signin' %}
-                <span class="error_msg"> {{ error_msg }}</span>
-                {% endif %}
-
+            <!-- error_msg -->
+            {% if error_msg and login_type == 'signin' %}
+            <span class="error_msg"> {{ error_msg }}</span>
+            {% endif %}
+            
+            <!-- chexbox -->
+            <div class="checkbox_area">
+                <input type="checkbox" name="remember_me" id="remember_me">
+                <label for="remember_me">Zostať prihlásený</label>
+            </div>
+            
+            <!-- button na prihlasenie -->
             <button type="submit">Prihlásiť sa</button>
 
             <!-- alternativa na zaregistrovanie/prihlasenie -> return false aby sa pri kliknuti nerefreshovala stranka-->
@@ -64,7 +72,7 @@
             <!-- meno -->
             <div class="input_line">
                 <label for="username_register">Meno/prezývka</label>
-                <input type="text" name="username_register" placeholder="example123">
+                <input type="text" name="username_register">
             </div>
 
             <!-- heslo -->

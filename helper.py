@@ -1,7 +1,9 @@
 import sqlite3, re
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-database = 'receipts.db'
+import config
+
+database = config.DATABASE_PATH
 
 
 #---------------------------------------------------DATABASE INSERT SELECT SECTION---------------------------
@@ -119,15 +121,36 @@ def get_top_5_expensive(user_id):
     con.close()
 
     return receipts
-#testing function
-def delete_receipt():
+
+
+def delete_receipt(receipt_id, user_id):
+
+    con = sqlite3.connect(database)
+    #zapnut foreign_keys, pretoze mama CASCADE, defaultne su vypnute
+    con.execute("PRAGMA foreign_keys = ON")
+    cur = con.cursor()
+
+    cur.execute("""DELETE FROM receipts where id = ? AND user_id = ?
+    """, (receipt_id, user_id,))
+
+    #aby sme vedeli ci sme vymazali blocek
+    deleted = cur.rowcount
+
+    con.commit()
+    con.close()
+
+    return deleted
+
+def get_receipt_details(receipt_id, user_id):
     
     con = sqlite3.connect(database)
     cur = con.cursor()
 
-    cur.execute("DELETE FROM receipts WHERE id = (SELECT MAX(id) from receipts)")
+    cur.execute("""SELECT item_name, amount, category, prize FROM items
+    WHERE 
+    ORDER BY datetime_iso DESC LIMIT 5""", (receipt_id, user_id))
 
-    con.commit()
+    receipts = cur.fetchall()
     con.close()
 
 #-----------------------------------------------------------------------------------------------
