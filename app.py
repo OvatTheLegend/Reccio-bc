@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 import helper, parser, database
 import random
 import os
@@ -138,6 +138,8 @@ def delete_receipt(receipt_id):
 
     user_id = session.get('user_id')
 
+    file_path = helper.get_file_path(receipt_id, user_id)
+
     deleted = helper.delete_receipt(receipt_id, user_id)
 
     #ak sa nevymazal, tak chyba
@@ -145,6 +147,10 @@ def delete_receipt(receipt_id):
         return jsonify({"error" : "Neautorizované"}), 403
     #vraciame json object nie render (kvoli dynamickosti stranke -> bez zbytocneho reloadu)
     
+    #odstraninie z disku
+    if file_path and os.path.exists(file_path):
+        os.remove(file_path)
+
     return jsonify({"success": True})
 
 @app.route('/receipt_details/<int:receipt_id>')
@@ -154,9 +160,28 @@ def receipt_details(receipt_id):
         return redirect(url_for('login'))
     
     user_id = session.get('user_id')
+    
+    #ziskame itemy
 
+    items = helper.get_items(receipt_id, user_id)
 
+    return jsonify(items)
 
+@app.route('/receipt_file/<int:receipt_id>')
+def receipt_origin(receipt_id):
+
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    #ziskame user user_id so session a podla nej najdeme folder usera
+    user_id = session.get('user_id')
+    file_path = helper.get_file_path(receipt_id, user_id)
+
+    if file_path is None or not os.path.exists(file_path):
+        return "Súbor sa nenašiel", 404
+
+    #ak vsetko v poriadku tak send file_path
+    return send_file(file_path)
 
 @app.route('/stats')
 
@@ -174,8 +199,6 @@ def upload():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-
-    message = ""
     #if pdf was submited
     if request.method == 'POST':
         #get file with request of file name
@@ -205,7 +228,7 @@ def upload():
                 #items
                 print("entering item section")
                 parsed_items = parser.parse_items_universal(parsed_receipt["shop_name"], pdf_text)
-                if parsed_items:
+                if parsed_items is not None:
                     #saving data to database
                     user_id = session.get('user_id')
                     receipt_id = helper.save_new_receipt(parsed_receipt, user_id, "manual")
@@ -217,19 +240,25 @@ def upload():
 
                         #save items 
                         helper.save_new_items(parsed_items, receipt_id)
-                        message = "Bloček bol úspešne uložený"
-                    else: message = "Bloček už existuje"
+
+                        #save path to file
+                        helper.save_file_path(receipt_id, final_file_path)
+
+                        #vratime upozornenie
+                        return jsonify({ "success": True, "message": "Bloček bol úspešne uložený" })
+                    else: 
+                        return jsonify({ "success": False, "message": "Bloček už existuje" })
                 
                 else:
                     #delete temporary file if not sucess
                     os.remove(file_path)
-                    message = "Nepodarilo sa uložiť položky bločku"
+                    return jsonify({ "success": False, "message": "Nepodarilo sa uložiť položky bločku" })
 
             else:
                 os.remove(file_path)
-                message = "Nepodarilo sa uložiť bloček"
+                return jsonify({ "success": False, "message": "Nepodarilo sa uložiť bloček" })
 
-    return render_template('upload.html',  message = message, show_menu = True)
+    return render_template('upload.html', show_menu = True)
 
 @app.route('/settings')
 def settings():
@@ -245,15 +274,8 @@ def open_webbrowser():
     webbrowser.open('http://localhost:5000')
 
 if __name__ == '__main__':
-    print("=" * 60)
-    print("🚀 ComfyeBlok sa spúšťa...")
-    print("=" * 60)
-    print("📂 Dáta sú uložené v:")
-    print(f"   {config.DATA_DIR}")
-    print("=" * 60)
     print("🌐 Appka beží na: http://localhost:5000")
-    print("💡 Pre ukončenie stlač Ctrl+C")
-    print("=" * 60)
+
 
     #otvori prehlaidac
     threading.Thread(target=open_webbrowser, daemon=True).start

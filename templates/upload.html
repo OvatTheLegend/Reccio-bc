@@ -28,9 +28,9 @@
 <!-- teraz jednotlive možnosti, default zobbrazenie je pdf -->
 <div id="pdf-option" class="option_content active">
     <div class="form_container_pdf">
-        <form action="/upload" method="post" enctype="multipart/form-data" required>
-            <input type="file" name="receipt_file" accept=".pdf">
-            <button type="submit">Nahraj súbor</button>
+        <form>
+            <input type="file" id="receipt_file" name="receipt_file" accept=".pdf">
+            <button type="button" onclick="uploadReceipt()">Nahraj súbor</button>
         </form>
     </div>
 </div>
@@ -48,12 +48,5 @@
     <p>TO BE DONE</p>
     </div>
 </div>
-
-
-{% if message %}
-    <div class="message">
-        {{ message }}
-    </div>
-{% endif %}
 
 {% endblock %}

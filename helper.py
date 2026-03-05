@@ -60,7 +60,7 @@ def save_new_items(data_list_dict, receipt_id):
             INSERT INTO items(item_name, amount, prize, category, receipt_id)
             VALUES (?,?,?,?,?)
             """, (data_item["item_name"],data_item["amount"],
-            data_item["prize"], "UNKNOWN", receipt_id)
+            data_item["prize"], "nezaradené", receipt_id)
             )
         con.commit()
     
@@ -70,6 +70,46 @@ def save_new_items(data_list_dict, receipt_id):
     finally:
         con.close()
 
+def save_file_path(receipt_id, file_path):
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+
+    try:
+        cur.execute(
+        """
+           UPDATE receipts SET file_path = ?
+           WHERE id = ?
+        """,(file_path, receipt_id))
+
+        con.commit()
+    
+    except sqlite3.IntegrityError:
+        return None
+
+    finally:
+        con.close()
+
+
+def get_file_path(receipt_id, user_id):
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+    cur.execute("""SELECT file_path FROM receipts
+    WHERE id = ?
+    AND user_id = ?
+    """, (receipt_id, user_id))
+
+    row = cur.fetchone()
+    con.close()
+
+    print(f"get_file_path: receipt_id={receipt_id}, user_id={user_id}, row={row}")  # ← pridaj
+    if row:
+        return row[0]
+    else:
+        return None
 
 def get_all_receipts(user_id):
 
@@ -153,10 +193,40 @@ def get_receipt_details(receipt_id, user_id):
     receipts = cur.fetchall()
     con.close()
 
+def get_items(receipt_id, user_id):
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+    cur.execute("""
+    SELECT i.item_name, i.amount, i.prize, i.category
+    FROM items i
+    JOIN receipts r ON i.receipt_id = r.id
+    WHERE i.receipt_id = ?
+    AND r.user_id = ?""", (receipt_id, user_id))
+
+    items = cur.fetchall()
+    con.close()
+
+    #naplnime itemy
+    item_list = []
+    for i in items:
+        item = {
+            "item_name": i[0],
+            "amount": i[1],
+            "prize": i[2],
+            "category": i[3]
+        }
+
+        item_list.append(item)
+
+    #a vratime
+    return item_list
 #-----------------------------------------------------------------------------------------------
 
 #---------------------------------------------------LOGIN/REGISTRATION SECTION---------------------------
 def register_user(username, password):
+
     #registracia noveho pouzivatela
 
     con = sqlite3.connect(database)

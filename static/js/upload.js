@@ -46,3 +46,53 @@ function switchOption(option){
         
     }
 }
+
+async function uploadReceipt(){
+
+    const file = document.getElementById('receipt_file');
+
+    //ak nie je vybraty subor -> warning
+    if (!file.files[0]) {
+        Swal.fire({
+            tittle: "Nie je vybratý žiadny súbor",
+            icon: "warning",
+            text: "najprv vyber súbor!",
+        });
+        return;
+    }
+
+    //do formData vlozime prilozeny subor
+    const formData = new FormData();
+    formData.append('receipt_file', file.files[0])
+
+    try {
+        //posleme cez flask
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                toast: true,
+                position: "top-end",
+                icon: "success",
+                title: data.message,
+                showConfirmButton: false,
+                timer: 2500,
+            });
+        }
+
+        else {
+            Swal.fire({
+                icon: "error",
+                title: "Chyba",
+                text: data.message,
+            });
+        }
+    } catch (error) {
+        console.error("Chyba:", error);
+    }
+}

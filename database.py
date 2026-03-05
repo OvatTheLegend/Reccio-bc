@@ -31,6 +31,7 @@ def init_database():
         datetime_iso TEXT NOT NULL,
         prize REAL NOT NULL,
         parse_method TEXT,
+        file_path TEXT,
         UNIQUE(user_id,shop_name,date,time,prize),
         FOREIGN KEY (user_id) REFERENCES users(id)
         )""")
@@ -49,7 +50,7 @@ def init_database():
 
     #commiting changes
     con.commit()
-    con.close
+    con.close()
     
     print("Database user,receipts,items created!")
 

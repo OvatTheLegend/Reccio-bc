@@ -76,7 +76,7 @@ def find_time(txt):
     return ""
 
 def find_prize(txt):
-    pattern = r"(?:Celkom|Suma)\s*:\s*(\d+(?:\.|,)\d{1,2})\s*(?:EUR|€|EURO)"
+    pattern = r"(?:CELKOM|Celkom|Suma)\s*:\s*(\d+(?:\.|,)\d{1,2})\s*(?:EUR|€|EURO)"
 
     prize = re.search(pattern,txt,re.IGNORECASE)
 
@@ -170,7 +170,7 @@ def parse_items_terno(txt):
             continue
 
     if items == []:
-        return
+        return []
     
     return items
     

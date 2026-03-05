@@ -28,16 +28,23 @@
                     <li class="receipt_card_buttons">
                     <!-- detail blocku -->
                     <button class="btn_receipt_detail" 
-                    data-id=" {{ receipt.id }}"
-                    onclick="showDetails(this.dataset.id)">
-                    Detail ▼
+                        data-id="{{ receipt.id }}"
+                        onclick="showDetails(this.dataset.id)">
+                        Detail ▼
                     </button>
-                
+
+                    <!-- vlozeny blocek -->
+                    <button class="btn_receipt_detail" 
+                        data-id="{{ receipt.id }}"
+                        onclick="showOrigin(this.dataset.id)">
+                        Original
+                    </button>
+
                     <!-- odstranenie blocku -->
                     <button class="btn_receipt_delete"
-                    data-id="{{receipt.id }}"
-                    onclick="deleteReceipt(this.dataset.id)">
-                    X
+                        data-id="{{ receipt.id }}"
+                        onclick="deleteReceipt(this.dataset.id)">
+                        X
                     </button>
                 </li>
             </ul>
