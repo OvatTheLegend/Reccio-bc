@@ -66,11 +66,9 @@ def login():
             #ak je zakliknute zostat prihlaseny
             if remember_me:
                 session.permanent = True
-                print("zapamatal som si")
 
             else:
                 session.permanent = False
-                print("odhlasim po zatvoreni")
 
             session['user_id'] = user_id
             session['username'] = username
@@ -105,6 +103,7 @@ def login():
             session['user_id'] = user_id
             session['username'] = username
 
+            flash("Boli ste úspešne zaregistrovaný.", "success")
             return redirect(url_for('home'))
     
     return render_template('login.html', show_menu = False, login_type = 'signin', error_msg = None)
@@ -122,14 +121,20 @@ def home():
         return redirect(url_for('login'))
 
     user_id = session.get('user_id')
+
+    dashboard_stats = helper.get_dashboard_per_month_stats(user_id)
     last_receipts = helper.get_last_5_receipts(user_id)
     expensive_receipts = helper.get_top_5_expensive(user_id)
 
-    return render_template('home.html', last_receipts = last_receipts, expensive_receipts = expensive_receipts, show_menu = True)
+    return render_template('home.html',
+        dashboard_stats = dashboard_stats,
+        last_receipts = last_receipts,
+        expensive_receipts = expensive_receipts,
+        how_menu = True)
 
 # MOJE BLOCKY
-@app.route('/moje_blocky')
-def moje_blocky():
+@app.route('/receipts')
+def receipts():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 

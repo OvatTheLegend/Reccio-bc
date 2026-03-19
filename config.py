@@ -81,8 +81,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 # rezim appky defaultne production
 FLASK_ENV = os.getenv("FLASK_ENV", "production").lower()
 
-#debugovanie len v development
-DEBUG = FLASK_ENV == "development"
 
 # Debug info (zobrazí sa v konzole pri spustení)
 print("=" * 60)
@@ -94,5 +92,4 @@ print(f"UPLOAD_FOLDER: {UPLOAD_FOLDER}")
 print(f"DATABASE_PATH: {DATABASE_PATH}")
 print(f"SECRET_FILE:   {SECRET_KEY_PATH}")
 print(f"FLASK_ENV:     {FLASK_ENV}")
-print(f"DEBUG:         {DEBUG}")
 print("=" * 60)

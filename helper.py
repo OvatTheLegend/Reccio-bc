@@ -99,7 +99,7 @@ def get_file_path(receipt_id, user_id):
     row = cur.fetchone()
     con.close()
 
-    print(f"get_file_path: receipt_id={receipt_id}, user_id={user_id}, row={row}")  # ← pridaj
+    print(f"get_file_path: receipt_id={receipt_id}, user_id={user_id}, row={row}") 
     if row:
         return row[0]
     else:
@@ -122,6 +122,7 @@ def get_all_receipts(user_id):
 
     return receipts
 
+#vrati 5 najnovsich
 def get_last_5_receipts(user_id):
 
     con = sqlite3.connect(database)
@@ -133,12 +134,13 @@ def get_last_5_receipts(user_id):
 
     cur.execute("""SELECT * FROM receipts
     WHERE user_id = ?
-    ORDER BY datetime_iso DESC LIMIT 5""", (user_id,))
+    ORDER BY prize DESC LIMIT 5""", (user_id,))
     receipts = cur.fetchall()
     con.close()
 
     return receipts
 
+#vrati 5 najdrahsich blockov
 def get_top_5_expensive(user_id):
 
     con = sqlite3.connect(database)
@@ -156,7 +158,47 @@ def get_top_5_expensive(user_id):
 
     return receipts
 
+#vrati sucasny mesiac a rok
+def get_current_month_and_year():
 
+    #aktualny
+    now = datetime.now()
+    month = f"{now.month:02d}"
+    year = f"{now.year}"
+
+    return month, year
+
+def get_sum_amount_per_month(user_id):
+
+    current_month, current_year = get_current_month_and_year()
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT COALESCE(SUM(prize), 0) AS total_sum
+        FROM receipts
+        WHERE user_id = ?
+        AND substr(date, 4, 2) = ?
+        AND substr(date, 7, 4) = ?
+    """, (user_id, current_month, current_year))
+
+    row = cur.fetchone()
+    con.close()
+
+    if row and row["total_sum"] is not None:
+        return round(float(row["total_sum"]),2)
+
+    #ak je none, vratime 0
+    return 0.0
+
+
+
+def get_dashboard_per_month_stats(user_id):
+    return {
+        "total_sum" : get_sum_amount_per_month(user_id)
+    }
 def delete_receipt(receipt_id, user_id):
 
     con = sqlite3.connect(database)

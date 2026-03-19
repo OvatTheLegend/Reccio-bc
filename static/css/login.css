@@ -9,148 +9,122 @@
     src: url("/static/fonts/Boldonse.ttf") format("truetype");
 } 
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+
+
+.option_content {
+    display: none;
 }
 
-html, body {
-    height: 100%;
+.option_content.active {
+    display: block;
 }
 
-body {
-    font-family: "AlanSans", sans-serif;
-    background: linear-gradient(150deg, rgb(100, 124, 228) 0%, rgb(160, 98, 221) 100%);
-    background-attachment: fixed;
-}
 
-/* FORM CONTAINER */
-.auth_form_container form {
+/* Celá auth stránka */
+.auth-page {
+    min-height: calc(100vh - 3rem);
     display: flex;
-    flex-direction: column;
-    max-width: 600px;
-    gap: 1em;
-    margin: 3em auto;
-    padding: 2.5em;
-    background-color: rgba(255, 255, 255, 0.945);
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
-/* NADPIS */
-form h2 {
-    font-size: 2em;
-    text-align: center;
-    color: #222;
-}
-
-/* INPUT RIADOK */
-.input_line {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3em;
-}
-
-.input_line label {
-    font-weight: 600;
-    color: #444;
-    font-size: 0.95em;
-}
-
-/* INPUTY */
-form input[type="text"],
-form input[type="password"] {
-    padding: 0.7em 1em;
-    border-radius: 8px;
-    border: 1.5px solid #ccc;
-    width: 100%;
-    box-sizing: border-box;
-    font-size: 1em;
-    font-family: "AlanSans", sans-serif;
-    transition: border 0.2s ease, box-shadow 0.2s ease;
-}
-
-form input[type="text"]:focus,
-form input[type="password"]:focus {
-    outline: none;
-    border-color: rgb(100, 124, 228);
-    box-shadow: 0 0 0 3px rgba(100, 124, 228, 0.15);
-}
-
-/* CHECKBOX */
-.checkbox_area {
-    display: flex;
-    flex-direction: row;
     align-items: center;
-    gap: 0.5em;
+    justify-content: center;
+    padding: 2rem 1rem;
 }
 
-#remember_me {
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    cursor: pointer;
-    accent-color: rgb(100, 124, 228);
+/* Hlavná karta */
+.auth-card {
+    width: 100%;
+    max-width: 720px;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 18px 45px rgba(31, 23, 66, 0.2);
 }
 
-.checkbox_area label {
-    cursor: pointer;
-    color: #444;
+/* Nadpis */
+.auth-title {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #1d1b31;
+    margin-bottom: 0.5rem;
 }
 
-/* BUTTON */
-.auth_form_container form button[type="submit"] {
-    padding: 0.75em 2em;
-    margin-top: 0.5em;
-    background: linear-gradient(135deg, rgb(100, 124, 228), rgb(160, 98, 221));
-    color: white;
+/* Prepínače hore */
+.auth-switch {
+    display: flex;
+    background: #f3f0ff;
+    border-radius: 999px;
+    padding: 0.35rem;
+    gap: 0.35rem;
+    margin: 0 auto;
+    max-width: 360px;
+}
+
+.auth-switch-btn {
+    flex: 1;
     border: none;
-    border-radius: 50px;
-    font-size: 1.1em;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    font-family: "AlanSans", sans-serif;
-}
-
-.auth_form_container form button[type="submit"]:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-
-.auth_form_container form button[type="submit"]:active {
-    transform: translateY(0);
-}
-
-/* ERROR SPRAVA */
-.error_msg {
-    color: #e53935;
-    background: rgba(229, 57, 53, 0.08);
-    border-radius: 6px;
-    padding: 0.5em 0.8em;
-    font-size: 0.9em;
-    border-left: 3px solid #e53935;
-}
-
-/* LINK registracia/login */
-.auth_form_container form p {
-    text-align: center;
-    color: #666;
-    font-size: 0.95em;
-}
-
-.auth_form_container form p a {
-    color: rgb(100, 124, 228);
+    background: transparent;
+    padding: 0.8rem 1rem;
+    border-radius: 999px;
     font-weight: 600;
+    color: #5a5674;
+    transition: all 0.2s ease;
+}
+
+.auth-switch-btn.active {
+    background: linear-gradient(90deg, #667eea 0%, #8b5cf6 100%);
+    color: white;
+    box-shadow: 0 8px 18px rgba(118, 92, 230, 0.25);
+}
+
+/* Bootstrap inputy doladíme */
+.auth-card .form-control {
+    min-height: 56px;
+    border: 1px solid #d8d3f1;
+    border-radius: 0.9rem;
+    box-shadow: none;
+}
+
+.auth-card .form-control:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.15);
+}
+
+/* Hlavné tlačidlo */
+.auth-btn {
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #667eea 0%, #9b5cf0 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.9rem 1.2rem;
+    box-shadow: 0 10px 24px rgba(118, 92, 230, 0.26);
+}
+
+.auth-btn:hover,
+.auth-btn:focus {
+    background: linear-gradient(90deg, #5f74df 0%, #8e4ff0 100%);
+    color: white;
+}
+
+/* Chybová správa */
+.auth-error {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    color: #be123c;
+    padding: 0.85rem 1rem;
+    border-radius: 0.9rem;
+    font-size: 0.95rem;
+}
+
+/* Odkazy */
+.auth-card a {
+    color: #6d4df2;
     text-decoration: none;
 }
 
-.auth_form_container form p a:hover {
+.auth-card a:hover {
     text-decoration: underline;
 }
 
+/* Schovávanie a zobrazovanie blokov */
 .option_content {
     display: none;
 }

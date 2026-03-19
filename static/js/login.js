@@ -4,6 +4,9 @@ function switchAuth(option){
     const signin = document.getElementById("signin-option")
     const register = document.getElementById("registration-option")
 
+
+    const buttons = document.querySelectorAll(".auth-switch-btn")
+    
     if (option == "signin"){
         signin.classList.add("active")
         register.classList.remove("active")
@@ -13,6 +16,14 @@ function switchAuth(option){
         register.classList.add("active")
         signin.classList.remove("active")
     }
+
+    buttons.forEach(btn => {
+        btn.classList.remove("active")
+
+        if (btn.dataset.type === option) {
+            btn.classList.add("active")
+        }
+    })
 }
 
 function validataSignin(){

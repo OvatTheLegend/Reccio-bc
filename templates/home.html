@@ -1,104 +1,161 @@
 {% extends "base.html" %}
 
-<!-- nazov podstranky -->
-{% block title %}ComfYe-Blok{% endblock %}
+{% block title %}Domov | ComfYe-Blok{% endblock %}
 
-<!-- vlastny css -->
 {% block css_addon %}
- <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 {% endblock %}
 
-<!-- teraz cely obsah podstranky -->
 {% block content %}
 
+<!-- uvitacia sekcia na stranke -->
+<section class="dashboard-hero mb-4">
+    <div class="dashboard-hero-content">
+        <div>
+            <p class="dashboard-subtitle mb-2">Prehľad aplikácie</p>
+            <h1 class="dashboard-title mb-2">Vitaj späť, {{ session.get('username', 'Používateľ') }}</h1>
+            <p class="dashboard-text mb-0">
+                Tu nájdete rýchly prehľad výdavkov, posledných nákupov a najdrahších bločkov.
+            </p>
+        </div>
 
+        <div class="dashboard-hero-badge">
+            <i class="bi bi-receipt-cutoff"></i>
+        </div>
+    </div>
+</section>
 
-<!-- container pre statistiky za mesiac -->
-<h1 class="stats_h1">Štatistiky za tento mesiac:</h1>
-
-<div class="stats_container">
-    <!-- suma -->
-    <div class="stats_card">
-        <div class="stat_label">Celkom </div>
-        <div class="stat_value">400€</div>
-    </div>
-     <!-- pocet nakupov -->
-    <div class="stats_card">
-        <div class="stat_label">Pocet nakupov</div>
-        <div class="stat_value">16</div>
-    </div>
-     <!-- primer -->
-    <div class="stats_card">
-        <div class="stat_label">Priemer</div>
-        <div class="stat_value">25€</div>
-    </div>
-     <!-- top obchod -->
-    <div class="stats_card">
-        <div class="stat_label">Top Obchod</div>
-        <div class="stat_value">TERNO</div>
-    </div>
-</div>
-
-<!-- kontajner pre grafy a kategorie-->
-<div class="chart_container">
-    <div class="chart_card">
-        <h2>Výdavky za mesiac</h2>
-        <div class="chart_month">
-            Graf 1
+<!-- Horné štatistiky -->
+<section class="stats-grid mb-4">
+    <div class="dashboard-card stat-card">
+        <div class="stat-icon purple">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div>
+            <p class="stat-label">Celkom za mesiac</p>
+            <h3 class="stat-value"> {{ dashboard_stats.total_sum }} €</h3>
         </div>
     </div>
 
-    <div class="chart_card">
-        <h2>Top kategórie</h2>
-        <div class="chart_category">
-            Graf 2
+    <div class="dashboard-card stat-card">
+        <div class="stat-icon blue">
+            <i class="bi bi-bag-check"></i>
+        </div>
+        <div>
+            <p class="stat-label">Počet nákupov</p>
+            <h3 class="stat-value">16</h3>
         </div>
     </div>
-</div>
 
-<!-- container pre posledne blocky poslednych nakupov-->
-<div class="receipts_container">
-    <div class="receipts_card">
-        <h2>Posledné nákupy</h2>
-        <div class="top_receipts">
+    <div class="dashboard-card stat-card">
+        <div class="stat-icon pink">
+            <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <div>
+            <p class="stat-label">Priemerný nákup</p>
+            <h3 class="stat-value">25 €</h3>
+        </div>
+    </div>
+
+    <div class="dashboard-card stat-card">
+        <div class="stat-icon gold">
+            <i class="bi bi-shop"></i>
+        </div>
+        <div>
+            <p class="stat-label">Top obchod</p>
+            <h3 class="stat-value">TERNO</h3>
+        </div>
+    </div>
+</section>
+
+<!-- Grafy -->
+<section class="dashboard-grid mb-4">
+    <div class="dashboard-card chart-card">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">Výdavky za mesiac</h2>
+            </div>
+        </div>
+
+        <div class="chart-placeholder">
+            <i class="bi bi-bar-chart-line"></i>
+        </div>
+    </div>
+
+    <div class="dashboard-card chart-card">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">Top kategórie</h2>
+            </div>
+        </div>
+
+        <div class="chart-placeholder">
+            <i class="bi bi-pie-chart"></i>
+        </div>
+    </div>
+</section>
+
+<!-- Spodné zoznamy -->
+<section class="dashboard-grid">
+    <!-- Posledné nákupy -->
+    <div class="dashboard-card receipts-card">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">Posledné nákupy</h2>
+            </div>
+        </div>
+
+        <div class="receipt-list">
             {% if last_receipts %}
                 {% for last_receipt in last_receipts %}
-                    <ul>
-                    <!-- informacie o udajoch blocku -->
-                        <li class="receipt_shop"> {{ last_receipt.shop_name }} </li>
-                        <li class="receipt_date"> {{ last_receipt.date }} </li>
-                        <li class="receipt_time"> {{ last_receipt.time }} </li>
-                        <li class="receipt_price"> {{ last_receipt.prize }} € </li>
-                    </ul>
+                    <div class="receipt-row">
+                        <div class="receipt-main">
+                            <div class="receipt-shop">{{ last_receipt.shop_name }}</div>
+                            <div class="receipt-meta">
+                                {{ last_receipt.date }} • {{ last_receipt.time }}
+                            </div>
+                        </div>
+                        <div class="receipt-price">{{ last_receipt.prize }} €</div>
+                    </div>
                 {% endfor %}
             {% else %}
-                <div class="default_message">
-                    <p>Zatiaľ nemáte žiadne bločky</p>
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Zatiaľ nemáte žiadne bločky.</p>
                 </div>
             {% endif %}
         </div>
     </div>
 
-    <div class="receipts_card">
-        <h2>Najdrahšie nákupy</h2>
-        <div class="top_receipts">
+    <!-- Najdrahšie nákupy -->
+    <div class="dashboard-card receipts-card">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">Najdrahšie nákupy</h2>
+            </div>
+        </div>
+
+        <div class="receipt-list">
             {% if expensive_receipts %}
                 {% for expensive_receipt in expensive_receipts %}
-                    <ul>
-                    <!-- informacie o udajoch blocku -->
-                        <li class="receipt_shop"> {{ expensive_receipt.shop_name }} </li>
-                        <li class="receipt_date"> {{ expensive_receipt.date }} </li>
-                        <li class="receipt_time"> {{ expensive_receipt.time }} </li>
-                        <li class="receipt_price"> {{ expensive_receipt.prize }} € </li>
-                    </ul>
+                    <div class="receipt-row">
+                        <div class="receipt-main">
+                            <div class="receipt-shop">{{ expensive_receipt.shop_name }}</div>
+                            <div class="receipt-meta">
+                                {{ expensive_receipt.date }} • {{ expensive_receipt.time }}
+                            </div>
+                        </div>
+                        <div class="receipt-price">{{ expensive_receipt.prize }} €</div>
+                    </div>
                 {% endfor %}
             {% else %}
-                <div class="default_message">
-                    <p>Zatiaľ nemáte žiadne bločky</p>
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Zatiaľ nemáte žiadne bločky.</p>
                 </div>
             {% endif %}
         </div>
     </div>
-</div>
+</section>
 
 {% endblock %}
