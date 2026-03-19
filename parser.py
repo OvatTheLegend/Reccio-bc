@@ -1,4 +1,9 @@
 import pdfplumber, re
+import json
+from openai import OpenAI
+import config
+import base64
+
 
 #extraction from pdf to text
 def extract_from_pdf(path):
@@ -90,7 +95,6 @@ def find_prize(txt):
 
 #parser for unique shop
 def parse_items_universal(shopName, txt):
-    print("starting universal parser")
     parsers = {
         "Dr.Max" : parse_items_drmax,
         "TERNO" : parse_items_terno,
@@ -106,19 +110,99 @@ def parse_items_universal(shopName, txt):
 
 #                            parser for unique shop type (items) seciton
 #----------------------------------------------------------------------------------------------------
-#parser for TERNO
+#parser for DRMAX
 def parse_items_drmax(txt):
-    print("drmax pareser activated")
-    return []
+    
+    #list of dict for all items
+    items = []
+
+    pattern_start = r"Názov liek"
+    pattern_end = r"Zaokrúhlenie|CELKOM"
+    pattern_items = r"#?\s*(\d+[.,]\d+)\s+(\d+[.,]\d+)\s+(-?\d+[.,]\d+)\s+(-?\d+[.,]\d+)\s+([A-Z])"
+
+    #spliting text to list of lines
+    lines = txt.splitlines()
+ 
+    start_index = None
+    end_index = None
+
+    for i, line in enumerate(lines):
+        if(re.search(pattern_start,line,re.IGNORECASE)):
+            start_index = i + 2
+            break
+    
+    #podmienka
+    if start_index is None:
+        return []
+
+    for i, line in enumerate(lines[start_index:]):
+        if(re.search(pattern_end,line,re.IGNORECASE)):
+            end_index = i + start_index
+            break
+
+    #podmienka
+    if end_index is None:
+        return []
+    
+
+    item_text_lines = lines[start_index:end_index]
+
+    i = 0
+    while i < len(item_text_lines):
+
+        item_name = item_text_lines[i].strip()
+
+        #ak nenaslo tak na dalsi riadok
+        if not item_name:
+            i += 1
+            continue
+
+        #ak nenaslo tak na dalsi riadok
+        if re.search(r"Položky na|Voľnopredajné|ZLAVA|predpis|\(\*|-->", item_name, re.IGNORECASE):
+            i += 1
+            continue
+
+        #ak nenaslo tak na dalsi riadok
+        if re.search(r"^-{3,}$", item_name):
+            i += 1
+            continue
+
+        #ak naslo, skontrolujeme ci su na dalsom prislusne data
+        if i + 1 < len(item_text_lines):
+            data_line = item_text_lines[i + 1].strip()
+            match = re.search(pattern_items, data_line)
+
+            #ak sedi
+            if match:
+                mnozstvo = match.group(3).replace(",", ".")
+                cena = match.group(4).replace(",", ".")
+
+                # ak naslo zaporne polozky tak preskocime, tie neratame do databazy, ani nulove polozky neratame
+                if float(mnozstvo) > 0 and float(cena) > 0:
+                    items.append({
+                        "item_name": item_name,
+                        "amount": mnozstvo,
+                        "prize": cena,
+                    })
+                    
+                i += 2
+                continue
+            
+        i += 1
+
+    if items == []:
+        return []
+    
+    return items
+
 #parser for TERNO
 def parse_items_terno(txt):
 
-    print("starting terno parser")
     #list of dict for all items
     items = []
 
     pattern_start = r"Množstvo\s+Cena\s+DPH\s+SUMA"
-    pattern_end = r"[-—–]{6,}"
+    pattern_end = r"Suma\s*:"
     pattern_items = r"(\d+(?:\.\d+)?)x\s+\d+(?:\.|,)\d+\s+(?:\d+\s*%\s+)?(\d+(?:\.|,)\d+)"
 
     #spliting text to list of lines
@@ -131,22 +215,18 @@ def parse_items_terno(txt):
     for i, line in enumerate(lines):
         if(re.search(pattern_start,line,re.IGNORECASE)):
             start_index = i
-            print("nasiel sa zaciatok")
             break
     
     #podmienka
     if start_index is None:
-        print("nenasiel sa pociatok listu")
         return []
 
     for i, line in enumerate(lines[start_index+2:]):
         if(re.search(pattern_end,line,re.IGNORECASE)):
-            print("nasiel sa koniec")
             end_index = i + start_index+2
             break
     #podmienka
     if end_index is None:
-        print("nenasiel sa koinec listu")
         return []
     
 
@@ -159,6 +239,12 @@ def parse_items_terno(txt):
         item = re.search(pattern_items,item_text_lines[i+1])
 
         if item:
+
+            #ak su to zlavy tak to skipneme
+            if re.search(r"zlava|zľava|bonus|body", item_name, re.IGNORECASE):
+                i += 2
+                continue
+
             i += 2
             items.append({
                 "item_name" : item_name,
@@ -174,5 +260,168 @@ def parse_items_terno(txt):
     
     return items
     
+def ai_parser_text(pdf_text):
 
+    #ak nie je nastaveny ai kluc tak nespadne appka, len sa preskoci funkcionalita
+    if not config.OPENAI_API_KEY:
+        return None
 
+    #nastavime kluc
+    client = OpenAI(api_key=config.OPENAI_API_KEY)
+
+    prompt = f"""
+    Toto je pokladničný blok. Extrahuj z neho tieto údaje a vráť ONLY JSON bez akéhokoľvek iného textu:
+    {{
+        "shop_name": "názov obchodu",
+        "date": "DD.MM.YYYY",
+        "time": "HH:MM:SS",
+        "prize": 0.00,
+        "items": [
+            {{
+                "item_name": "názov položky",
+                "amount": "pocet položiek",
+                "prize": "cena položky",
+                "category": "kategoria položky"
+            }}
+        ]
+    }}
+    Pravidlá su nasledovné:
+    - shop_name je nazov obchody, teda TERNO, TESCO, KAUFLAND atd...
+    - date musí byť formát DD.MM.YYYY
+    - time musí byť formát HH:MM:SS
+    - prize je celková suma nakupu ako float cislo
+    - items sú jednotlivé položky, ak je samostnatna položka nejaka zlava, teda napriklad seniorska zlava -4.30 tak tieto neposielaj, iba položky ktore sme kupili a maju kladnu sumu.
+    - item_name je celý nazov položky
+    - amount je počet kupených kusov, teda napriklad pri kuracich prsiach to moze byt aj 0.675
+    - prize je cena danej položky
+    - category je kategoria položky musis vybrat jednu z: "Potraviny", "Drogéria", "Lieky", "Elektronika", "Oblečenie", "Ostatné",
+    - vitaminy a vyzivove doplnky považuj za lieky
+    - hocijake jedlo, ci už to je tycinka, alebo su to chrumky, čipsy -> zarad ako Potraviny
+    - takisto hocijake pitie, dzus, vodka, pivo, voda, preliva voda magnesium atd -> zarad ako potraviny
+    text blocku:
+    {pdf_text}
+    """
+    
+    #skusime odoslat
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                "role": "user", 
+                "content": prompt
+                }
+            ],
+            max_tokens=1000,
+        )
+
+        ai_result = response.choices[0].message.content.strip()
+
+        #odstranime obalenie json bloku
+        ai_result = ai_result.replace("```json", "").replace("```", "").strip()
+
+        data = json.loads(ai_result)
+        return data
+
+    except json.JSONDecodeError as e:
+        print(f"AI vratilo neplatny JSON: {e}")
+        return None
+        
+    except Exception as e:
+        print(f"AI parser chyba: {e}")
+        return None
+
+def ai_parser_img(file_path):
+
+    #ak nie je nastaveny ai kluc tak nespadne appka, len sa preskoci funkcionalita
+    if not config.OPENAI_API_KEY:
+        return None
+
+    #nastavime kluc
+    client = OpenAI(api_key=config.OPENAI_API_KEY)
+
+    #najrpv nacitame obrazok
+    with open(file_path, "rb") as f:
+        image_data = base64.standard_b64encode(f.read()).decode("utf-8")
+
+    #potrebujeme zistit typ suboru (png,jpeg,jpg)
+    #ak png
+    if file_path.lower().endswith('.png'):
+        media_type = "image/png"
+    
+    #inak jpeg
+    else:
+        media_type = "image/jpeg"
+
+    #teraz promt
+    prompt = f"""
+    Toto je pokladničný blok. Extrahuj z neho tieto údaje a vráť ONLY JSON bez akéhokoľvek iného textu:
+    {{
+        "shop_name": "názov obchodu",
+        "date": "DD.MM.YYYY",
+        "time": "HH:MM:SS",
+        "prize": 0.00,
+        "items": [
+            {{
+                "item_name": "názov položky",
+                "amount": "pocet položiek",
+                "prize": "cena položky",
+                "category": "kategoria položky"
+            }}
+        ]
+    }}
+    Pravidlá su nasledovné:
+    - shop_name je nazov obchody, teda TERNO, TESCO, KAUFLAND atd...
+    - date musí byť formát DD.MM.YYYY
+    - time musí byť formát HH:MM:SS
+    - prize je celková suma nakupu ako float cislo
+    - items sú jednotlivé položky, ak je samostnatna položka nejaka zlava, teda napriklad seniorska zlava -4.30 tak tieto neposielaj, iba položky ktore sme kupili a maju kladnu sumu.
+    - item_name je celý nazov položky
+    - amount je počet kupených kusov, teda napriklad pri kuracich prsiach to moze byt aj 0.675
+    - prize je cena danej položky
+    - category je kategoria položky musis vybrat jednu z: "Potraviny", "Drogéria", "Lieky", "Elektronika", "Oblečenie", "Ostatné",
+    - vitaminy a vyzivove doplnky považuj za lieky
+    - hocijake jedlo, ci už to je tycinka, alebo su to chrumky, čipsy -> zarad ako Potraviny
+    - takisto hocijake pitie, dzus, vodka, pivo, voda, preliva voda magnesium atd -> zarad ako potraviny
+    """
+    
+    #skusime odoslat
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                "role": "user", 
+                "content": [
+                    {
+                        "type" : "image_url",
+                        "image_url" : {
+                            "url" : f'data:{media_type};base64,{image_data}'
+                        }
+                    },
+                    {
+                        "type" : "text",
+                        "text" : prompt
+                    }
+                ]
+                }
+            ],
+            max_tokens=1000,
+        )
+
+        ai_result = response.choices[0].message.content.strip()
+
+        #odstranime obalenie json bloku
+        ai_result = ai_result.replace("```json", "").replace("```", "").strip()
+
+        data = json.loads(ai_result)
+        return data
+
+    except json.JSONDecodeError as e:
+        print(f"AI vratilo neplatny JSON: {e}")
+        return None
+        
+    except Exception as e:
+        print(f"AI parser chyba: {e}")
+        return None
+    

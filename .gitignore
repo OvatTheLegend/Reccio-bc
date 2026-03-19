@@ -1,0 +1,18 @@
+# Citlivé údaje a lokálne prostredie
+.env
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Editorové nastavenia
+.idea/
+.vscode/
+
+# Lokálne databázy a uploady
+*.db
+instance/
+uploads/

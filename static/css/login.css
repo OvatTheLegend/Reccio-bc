@@ -25,16 +25,9 @@ body {
     background-attachment: fixed;
 }
 
-.option_content {
-    display: none;
-}
-
-.option_content.active {
-    display: block;
-}
-
-.auth_form_container form{
-    display:flex;
+/* FORM CONTAINER */
+.auth_form_container form {
+    display: flex;
     flex-direction: column;
     max-width: 600px;
     gap: 1em;
@@ -45,19 +38,71 @@ body {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
+/* NADPIS */
 form h2 {
     font-size: 2em;
     text-align: center;
+    color: #222;
 }
 
+/* INPUT RIADOK */
 .input_line {
     display: flex;
     flex-direction: column;
-    gap: 0.1em;
+    gap: 0.3em;
 }
 
+.input_line label {
+    font-weight: 600;
+    color: #444;
+    font-size: 0.95em;
+}
+
+/* INPUTY */
+form input[type="text"],
+form input[type="password"] {
+    padding: 0.7em 1em;
+    border-radius: 8px;
+    border: 1.5px solid #ccc;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1em;
+    font-family: "AlanSans", sans-serif;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+form input[type="text"]:focus,
+form input[type="password"]:focus {
+    outline: none;
+    border-color: rgb(100, 124, 228);
+    box-shadow: 0 0 0 3px rgba(100, 124, 228, 0.15);
+}
+
+/* CHECKBOX */
+.checkbox_area {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5em;
+}
+
+#remember_me {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: rgb(100, 124, 228);
+}
+
+.checkbox_area label {
+    cursor: pointer;
+    color: #444;
+}
+
+/* BUTTON */
 .auth_form_container form button[type="submit"] {
-    padding: 0.5em 2em;
+    padding: 0.75em 2em;
+    margin-top: 0.5em;
     background: linear-gradient(135deg, rgb(100, 124, 228), rgb(160, 98, 221));
     color: white;
     border: none;
@@ -70,42 +115,46 @@ form h2 {
     font-family: "AlanSans", sans-serif;
 }
 
-.auth_form_container form button[type="submit"]:hover  {
+.auth_form_container form button[type="submit"]:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
-form input {
-    padding: 0.5em 0.5em;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    width: 100%;
-    box-sizing: border-box;
+.auth_form_container form button[type="submit"]:active {
+    transform: translateY(0);
 }
 
+/* ERROR SPRAVA */
 .error_msg {
-    color:red;
-    text-align: left;
-    font-size: small;
+    color: #e53935;
+    background: rgba(229, 57, 53, 0.08);
+    border-radius: 6px;
+    padding: 0.5em 0.8em;
+    font-size: 0.9em;
+    border-left: 3px solid #e53935;
 }
 
-.checkbox_area {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.5em;
+/* LINK registracia/login */
+.auth_form_container form p {
+    text-align: center;
+    color: #666;
+    font-size: 0.95em;
 }
 
-#remember_me {
-    width: 18px;
-    height: 18px;
-    margin: 0;
+.auth_form_container form p a {
+    color: rgb(100, 124, 228);
+    font-weight: 600;
+    text-decoration: none;
 }
 
-#remember_me:hover{
-    cursor: pointer;
+.auth_form_container form p a:hover {
+    text-decoration: underline;
 }
 
-.checkbox_area label {
-    cursor: pointer;
+.option_content {
+    display: none;
+}
+
+.option_content.active {
+    display: block;
 }

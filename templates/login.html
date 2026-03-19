@@ -21,7 +21,7 @@
 <!-- login content -->
 <div id="signin-option" class="option_content {% if login_type != 'register' %}active{% endif %}">
     <div class="auth_form_container">
-        <form action="/" method="post" autocomplete="off">
+        <form action="/" method="post" autocomplete="off" onsubmit="return validateSignin()">
             <!-- co sa poslalo, signin alebo register -->
             <input type="hidden" name="form_type" value="signin">
 
@@ -63,7 +63,7 @@
 
 <div id="registration-option" class="option_content {% if login_type == 'register' %}active{% endif %}">
     <div class="auth_form_container">
-        <form action="/" method="post" autocomplete="off">
+        <form action="/" method="post" autocomplete="off" onsubmit="return validateRegister()">
             <!-- co sa poslalo, signin alebo register -->
             <input type="hidden" name="form_type" value="register">
 

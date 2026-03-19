@@ -9,14 +9,14 @@
 }
 
 .blocky_container ul {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 200px 150px 120px 100px auto;
     align-items: center;
-    justify-content: space-between;
     gap: 1em;
     list-style: none;
     background-color: rgba(255, 255, 255, 0.95);
     border-radius: 12px;
+    padding: 0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
 }
@@ -51,6 +51,7 @@
     display: flex;
     gap: 0.5em;
     align-items: center;
+    justify-self: end;
 }
 
 /* Spoločné štýly pre tlačidlá */

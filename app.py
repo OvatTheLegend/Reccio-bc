@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
 import helper, parser, database
 import random
 import os
@@ -9,10 +9,15 @@ import time
 
 
 app = Flask(__name__)
-app.secret_key = 'moj_tajny_klucik_123'
+
+#flask key
+app.config["SECRET_KEY"] = config.SECRET_KEY
 
 #cesty z config suboru
-app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
+app.config["UPLOAD_FOLDER"] = str(config.UPLOAD_FOLDER)
+
+#ochrana pri nahrate velkeho suboru 20MB
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
 #initialization of databse
 database.init_database()
@@ -69,6 +74,8 @@ def login():
 
             session['user_id'] = user_id
             session['username'] = username
+
+            flash("Boli ste úspešne prihlásený.", "success")
 
             return redirect(url_for('home'))
         
@@ -191,75 +198,199 @@ def stats():
 
     return render_template('stats.html', show_menu = True)
 
-
-#route for adding a new receipt into database: -> GET if default
-#                                              -> POST if file was submitted
-@app.route('/upload', methods=['GET','POST'])
+#default upload nacitanie stranky
+@app.route('/upload', methods=['GET'])
 def upload():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    #if pdf was submited
-    if request.method == 'POST':
-        #get file with request of file name
-        file = request.files.get("receipt_file")
+    return render_template('upload.html', show_menu=True)
 
-        if file and file.filename != "":
+#pdf upload
+@app.route('/upload_pdf', methods=['POST'])
+def upload_pdf():
 
-            user_id = session.get('user_id')
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    #get file with request of file name
+    file = request.files.get("receipt_file_pdf")
+
+    if not file or file.filename == "":
+        return jsonify({"success": False, "message": "Vyberte súbor"})
+
+    extension = file.filename.rsplit('.')[-1].lower()
+
+    #povolene typy
+    allowed = {
+        'pdf'
+    }
+
+    if extension not in allowed:
+        return jsonify({"success": False, "message": "Podporované formáty: pdf"})
+
+    user_id = session.get('user_id')
+    
+    #creating unique folder for specific user
+    user_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'user{user_id}')
+    os.makedirs(user_folder, exist_ok=True)
+
+    #saving file (FOR FUTURE ADD TIMESTAMP TO PREVENT SAME NAME FILE)
+    temp_filename = f'temp_{file.filename}'
+    file_path = os.path.join(user_folder, temp_filename)
+    file.save(file_path)
+
+    #extraction of text from pdf, parsing, 
+    pdf_text = parser.extract_from_pdf(file_path)
+
+    #receipt
+
+    #naprv vyparsuejeme blocek
+    parsed_receipt = parser.parse_receipt(pdf_text)
+    parsed_items = parser.parse_items_universal(parsed_receipt["shop_name"], pdf_text)
+    parse_method = "parser"
+
+
+    #manualny pareser zlyhal
+    if not parsed_receipt or not parsed_items:
+        #ak sa nepodari, skusime ai
+
+        #zavolanie parsera ai
+        parsed_ai = parser.ai_parser_text(pdf_text)
+
+        if parsed_ai is None:
+            os.remove(file_path)
+            return jsonify({ "success": False, "message": "Nepodarilo sa načítať bloček, skontroluje internetové pripojenie"})
+
+        parsed_receipt = {
+            "shop_name":  parsed_ai["shop_name"],
+            "date":  parsed_ai["date"],
+            "time": parsed_ai["time"],
+            "prize":  parsed_ai["prize"],
+        }
+
+        parsed_items = parsed_ai["items"]
+        parse_method = "ai"
+
+    #ak vsetko v poriadku ulozime do db
+    receipt_id = helper.save_receipt(parsed_receipt, parsed_items, user_id, parse_method)
+
+    #ak chyba pri ukladani
+    if receipt_id is None:
+        os.remove(file_path)
+        return jsonify({"success": False, "message": "Skontrolujte či už bloček nie je pridaný"})
             
-            #creating unique folder for specific user
-            user_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'user{user_id}')
-            os.makedirs(user_folder, exist_ok=True)
+    #rename the file_pre-saved
+    final_filename = f'r_{receipt_id}.{extension}'
+    final_file_path = os.path.join(user_folder,final_filename)
+    os.rename(file_path, final_file_path)
 
-            #saving file (FOR FUTURE ADD TIMESTAMP TO PREVENT SAME NAME FILE)
-            temp_filename = f'temp_{file.filename}'
-            file_path = os.path.join(user_folder, temp_filename)
-            file.save(file_path)
+    #ulozime cestu k suboru pre zobrazovanie originalu
+    helper.save_file_path(receipt_id, final_file_path)
+        
+    return jsonify({ "success": True, "message": "Bloček bol úspešne uložený" })
 
-            #extraction of text from pdf, parsing, 
-            pdf_text = parser.extract_from_pdf(file_path)
+#obrazok
+@app.route('/upload_img', methods=['POST'])
+def upload_img():
 
-            #receipt
-            print("entering receipt section")
-            parsed_receipt = parser.parse_receipt(pdf_text)
-            if parsed_receipt:
-                
-                #items
-                print("entering item section")
-                parsed_items = parser.parse_items_universal(parsed_receipt["shop_name"], pdf_text)
-                if parsed_items is not None:
-                    #saving data to database
-                    user_id = session.get('user_id')
-                    receipt_id = helper.save_new_receipt(parsed_receipt, user_id, "manual")
-                    if receipt_id is not None:
-                        #rename the file_pre-saved
-                        final_filename = f'r_{receipt_id}.pdf'
-                        final_file_path = os.path.join(user_folder,final_filename)
-                        os.rename(file_path, final_file_path)
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-                        #save items 
-                        helper.save_new_items(parsed_items, receipt_id)
+    #get file with request of file name
+    file = request.files.get("receipt_file_img")
 
-                        #save path to file
-                        helper.save_file_path(receipt_id, final_file_path)
+    if not file or file.filename == "":
+        return jsonify({"success": False, "message": "Vyberte súbor"})
 
-                        #vratime upozornenie
-                        return jsonify({ "success": True, "message": "Bloček bol úspešne uložený" })
-                    else: 
-                        return jsonify({ "success": False, "message": "Bloček už existuje" })
-                
-                else:
-                    #delete temporary file if not sucess
-                    os.remove(file_path)
-                    return jsonify({ "success": False, "message": "Nepodarilo sa uložiť položky bločku" })
+    #zistime typ suboru
+    extension = file.filename.rsplit('.')[-1].lower()
 
-            else:
-                os.remove(file_path)
-                return jsonify({ "success": False, "message": "Nepodarilo sa uložiť bloček" })
+    #povolene typy
+    allowed = {
+        'jpg','jpeg','png'
+    }
 
-    return render_template('upload.html', show_menu = True)
+    if extension not in allowed:
+        return jsonify({"success": False, "message": "Podporované formáty: png, jpeg, jpg"})
 
+    user_id = session.get('user_id')
+    
+    #creating unique folder for specific user
+    user_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'user{user_id}')
+    os.makedirs(user_folder, exist_ok=True)
+
+    #saving file (FOR FUTURE ADD TIMESTAMP TO PREVENT SAME NAME FILE)
+    temp_filename = f'temp_{file.filename}'
+    file_path = os.path.join(user_folder, temp_filename)
+    file.save(file_path)
+
+
+    #zavolanie parsera ai
+    parsed_ai = parser.ai_parser_img(file_path)
+
+    if parsed_ai is None:
+        os.remove(file_path)
+        return jsonify({ "success": False, "message": "Nepodarilo sa načítať bloček, skontroluje internetové pripojenie"})
+
+    parsed_receipt = {
+        "shop_name":  parsed_ai["shop_name"],
+        "date":  parsed_ai["date"],
+        "time": parsed_ai["time"],
+        "prize":  parsed_ai["prize"],
+    }
+
+    parsed_items = parsed_ai["items"]
+    parse_method = "ai"
+
+    #ak vsetko v poriadku ulozime do db
+    receipt_id = helper.save_receipt(parsed_receipt, parsed_items, user_id, "ai")
+
+    #ak chyba pri ukladani
+    if receipt_id is None:
+        os.remove(file_path)
+        return jsonify({"success": False, "message": "Skontrolujte či už bloček nie je pridaný"})
+            
+    #rename the file_pre-saved
+    final_filename = f'r_{receipt_id}.{extension}'
+    final_file_path = os.path.join(user_folder,final_filename)
+    os.rename(file_path, final_file_path)
+
+    #ulozime cestu k suboru pre zobrazovanie originalu
+    helper.save_file_path(receipt_id, final_file_path)
+        
+    return jsonify({ "success": True, "message": "Bloček bol úspešne uložený" })
+
+#manualny upload
+@app.route('/upload_manual', methods=['POST'])
+def upload_manual():
+
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    data = request.get_json()
+    user_id = session.get('user_id')
+
+    #naplnime blocek
+    receipt = {
+        "shop_name": data["shop_name"],
+        "date": data["date"],
+        "time": data["time"],
+        "prize": data["prize"],
+    }
+
+    #teraz itemy
+    items = data["items"]
+
+    #ulozime blocek
+    receipt_id = helper.save_receipt(receipt, items, user_id, "manual")
+
+    #ak sa nepodari
+    if receipt_id is None:
+        return jsonify({"success": False, "message": "Skontrolujte či už bloček nie je pridaný"})
+    
+    return jsonify({"success": True, "message": "Bloček bol úspešne uložený"})
+    
 @app.route('/settings')
 def settings():
     if 'user_id' not in session:
@@ -270,15 +401,23 @@ def settings():
 
 #automaticke otvorenie prehliadaca pri spusteni appky
 def open_webbrowser():
-    time.asleep(2)
-    webbrowser.open('http://localhost:5000')
+
+    #po chvili sa otvori prehliaiacdac
+    time.sleep(2)
+    webbrowser.open('http://127.0.0.1:5000')
+
+
 
 if __name__ == '__main__':
-    print("🌐 Appka beží na: http://localhost:5000")
+    print("🌐 Appka beží na: http://127.0.0.1:5000")
 
 
     #otvori prehlaidac
-    threading.Thread(target=open_webbrowser, daemon=True).start
+    threading.Thread(target=open_webbrowser, daemon=True).start()
     
-    #spusti flask s debugom
-    app.run(debug=True)
+    #spusti flask
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=False
+    )

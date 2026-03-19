@@ -29,8 +29,8 @@
 <div id="pdf-option" class="option_content active">
     <div class="form_container_pdf">
         <form>
-            <input type="file" id="receipt_file" name="receipt_file" accept=".pdf">
-            <button type="button" onclick="uploadReceipt()">Nahraj súbor</button>
+            <input type="file" id="receipt_file_pdf" name="receipt_file_pdf" accept=".pdf">
+            <button type="button" onclick="upload_pdf()">Nahraj súbor</button>
         </form>
     </div>
 </div>
@@ -38,14 +38,56 @@
 <!-- nahrať fotku -->
 <div id="photo-option" class="option_content">
     <div class="form_container_pdf">
-    <p>TO BE DONE</p>
+        <form>
+            <input type="file" id="receipt_file_img" name="receipt_file_img" accept=".jpg,.jpeg,.png">
+            <button type="button" onclick="upload_img()">Nahraj fotku</button>
+        </form>
     </div>
 </div>
 
 <!-- manualne nahranie blocku-->
 <div id="manual-option" class="option_content">
     <div class="form_container_pdf">
-    <p>TO BE DONE</p>
+
+        <!-- nazov obchodu -->
+        <div class="manual_field">
+            <label>Obchod</label>
+            <select id="manual_shop" onchange="toggleCustomShop()">
+                <option value="Dr.Max">Dr.Max</option>
+                <option value="TERNO">TERNO</option>
+                <option value="ine">Iné</option>
+            </select>
+            <input type="text" id="manual_shop_custom" placeholder="Názov obchodu" style="display:none;">
+        </div>
+
+        <!-- datum-->
+        <div class="manual_field">
+            <label>Dátum</label>
+            <input type="text" id="manual_date" placeholder="DD.MM.YYYY">
+        </div>
+
+        <!-- čas   -->
+        <div class="manual_field">
+            <label>Čas</label>
+            <input type="text" id="manual_time" placeholder="HH:MM:SS">
+        </div>
+
+        <!-- suma nakupu  -->
+        <div class="manual_field">
+            <label>Celková suma (€)</label>
+            <input type="number" id="manual_prize" step="0.01" min="0" placeholder="0.00">
+        </div>
+
+         <!-- polozky blocku -->
+        <div class="manual_field">
+            <label>Položky</label>
+            <div id="manual_items">
+            </div>
+            <button type="button" onclick="addItem()">+ Pridať položku</button>
+        </div>
+
+        <button type="button" onclick="uploadManual()">Uložiť bloček</button>
+
     </div>
 </div>
 

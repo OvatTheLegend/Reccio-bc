@@ -7,69 +7,6 @@ database = config.DATABASE_PATH
 
 
 #---------------------------------------------------DATABASE INSERT SELECT SECTION---------------------------
-#function for saving new recepit into databse, data of type dictionary
-def save_new_receipt(data_dict, user_id, parse_method):
-
-    #connection to database and getting cursor for making sql statements 
-    con = sqlite3.connect(database)
-    cur = con.cursor()
-
-    #need to switch from sk format to iso due to filetring later
-    date = data_dict["date"]
-    time = data_dict["time"]
-    #ignore seconds
-    time = time[:5]
-
-    dt = datetime.strptime(f"{date} {time}", "%d.%m.%Y %H:%M")
-    datetime_iso = dt.strftime("%Y-%m-%d %H:%M:%S")
-
-    try:
-        cur.execute(
-            """
-            INSERT INTO receipts(shop_name, date, time, datetime_iso, prize, user_id, parse_method)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (data_dict["shop_name"],data_dict["date"],data_dict["time"], datetime_iso, data_dict["prize"], user_id, parse_method)
-            )
-
-        #getting last added row to table
-        receipt_id = cur.lastrowid
-
-        con.commit()
-        con.close()
-
-        return receipt_id
-
-    except sqlite3.IntegrityError:
-        return None
-
-    finally:
-        con.close()
-
-
-#function for saving new items into database
-def save_new_items(data_list_dict, receipt_id):
-
-    con = sqlite3.connect(database)
-    cur = con.cursor()
-
-
-    try:
-        for data_item in data_list_dict:
-            cur.execute(
-            """
-            INSERT INTO items(item_name, amount, prize, category, receipt_id)
-            VALUES (?,?,?,?,?)
-            """, (data_item["item_name"],data_item["amount"],
-            data_item["prize"], "nezaradené", receipt_id)
-            )
-        con.commit()
-    
-    except sqlite3.IntegrityError:
-        return None
-
-    finally:
-        con.close()
-
 def save_file_path(receipt_id, file_path):
 
     con = sqlite3.connect(database)
@@ -91,6 +28,63 @@ def save_file_path(receipt_id, file_path):
     finally:
         con.close()
 
+def save_receipt(parsed_receipt, parsed_items, user_id, parse_method):
+
+    #pripojim k databaze so zapnutymi cudzimi klucami
+    con = sqlite3.connect(database)
+    con.execute("PRAGMA foreign_keys = ON")
+    cur = con.cursor()
+
+    #datum
+    date = parsed_receipt["date"]
+    #cas
+    time = parsed_receipt["time"][:5]
+    #dam na datetime
+    dt = datetime.strptime(f"{date} {time}", "%d.%m.%Y %H:%M")
+    #prehodim kvoli filtrovaniu
+    datetime_iso = dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+    try:
+        #najrpv blocek
+        cur.execute(
+        """
+        INSERT INTO receipts(shop_name, date, time, datetime_iso, prize, user_id, parse_method)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, 
+        (parsed_receipt["shop_name"], parsed_receipt["date"], parsed_receipt["time"],
+          datetime_iso, parsed_receipt["prize"], user_id, parse_method)
+        )
+
+        #zoberieme pridany blocek
+        receipt_id = cur.lastrowid
+
+        #teraz itemy
+        for item in parsed_items:
+
+            #spracovanie kategorie
+            category = item["category"] if parse_method == "ai" else "nezaradené"
+
+            cur.execute(
+            """
+            INSERT INTO items(item_name, amount, prize, category, receipt_id)
+            VALUES (?, ?, ?, ?, ?)
+            """, 
+            (item["item_name"], item["amount"], item["prize"], category, receipt_id))
+
+        con.commit()
+        return receipt_id
+
+    except sqlite3.IntegrityError:
+        con.rollback()
+        return None
+
+    except Exception as e:
+        con.rollback()
+        return None
+
+    finally:
+        con.close()
 
 def get_file_path(receipt_id, user_id):
 

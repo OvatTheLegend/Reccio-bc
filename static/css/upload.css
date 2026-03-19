@@ -116,3 +116,101 @@
     white-space: pre-wrap;
 }
 
+/* MANUAL FORM */
+.manual_field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    margin-bottom: 1.2em;
+}
+
+.manual_field label {
+    font-weight: bold;
+    color: #444;
+    font-size: 0.95em;
+}
+
+.manual_field input[type="text"],
+.manual_field input[type="number"],
+.manual_field select {
+    padding: 0.6em 0.8em;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    font-family: "AlanSans", sans-serif;
+    transition: border 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.manual_field input:focus,
+.manual_field select:focus {
+    outline: none;
+    border-color: rgb(100, 124, 228);
+    box-shadow: 0 0 0 3px rgba(100, 124, 228, 0.15);
+}
+
+/* POLOZKY */
+.manual_item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 0.6em;
+    align-items: center;
+    margin-bottom: 0.6em;
+    background: rgba(100, 124, 228, 0.05);
+    padding: 0.6em;
+    border-radius: 8px;
+    border: 1px solid rgba(100, 124, 228, 0.15);
+}
+
+.manual_item input {
+    padding: 0.5em 0.7em;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95em;
+    font-family: "AlanSans", sans-serif;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.manual_item input:focus {
+    outline: none;
+    border-color: rgb(100, 124, 228);
+}
+
+/* remove button pre polozku */
+.manual_item button {
+    padding: 0.4em 0.7em !important;
+    background: linear-gradient(135deg, #e57373, #ef5350) !important;
+    border-radius: 8px !important;
+    font-size: 0.9em !important;
+    box-shadow: none !important;
+    width: auto !important;
+}
+
+.manual_item button:hover {
+    transform: translateY(-1px) !important;
+}
+
+/* pridaj polozku button */
+#manual_items + button {
+    margin-top: 0.5em;
+    padding: 0.6em 1.4em !important;
+    font-size: 0.95em !important;
+    background: linear-gradient(135deg, rgba(100, 124, 228, 0.15), rgba(160, 98, 221, 0.15)) !important;
+    color: rgb(100, 124, 228) !important;
+    border: 2px solid rgba(100, 124, 228, 0.4) !important;
+    box-shadow: none !important;
+}
+
+#manual_items + button:hover {
+    background: linear-gradient(135deg, rgba(100, 124, 228, 0.25), rgba(160, 98, 221, 0.25)) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ulozit blocek button - oddelit od ostatnych */
+#manual-option > div > button:last-child {
+    display: block;
+    width: 100%;
+    margin-top: 1.5em;
+}
