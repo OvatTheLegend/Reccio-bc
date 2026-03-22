@@ -43,7 +43,7 @@
         </div>
         <div>
             <p class="stat-label">Počet nákupov</p>
-            <h3 class="stat-value">16</h3>
+            <h3 class="stat-value"> {{ dashboard_stats.purchase_count }} </h3>
         </div>
     </div>
 
@@ -53,7 +53,7 @@
         </div>
         <div>
             <p class="stat-label">Priemerný nákup</p>
-            <h3 class="stat-value">25 €</h3>
+            <h3 class="stat-value"> {{ dashboard_stats.average_amount }} €</h3>
         </div>
     </div>
 
@@ -63,7 +63,7 @@
         </div>
         <div>
             <p class="stat-label">Top obchod</p>
-            <h3 class="stat-value">TERNO</h3>
+            <h3 class="stat-value">{{ dashboard_stats.top_shop }}</h3>
         </div>
     </div>
 </section>

@@ -134,7 +134,7 @@ def get_last_5_receipts(user_id):
 
     cur.execute("""SELECT * FROM receipts
     WHERE user_id = ?
-    ORDER BY prize DESC LIMIT 5""", (user_id,))
+    ORDER BY datetime_iso DESC LIMIT 5""", (user_id,))
     receipts = cur.fetchall()
     con.close()
 
@@ -152,7 +152,7 @@ def get_top_5_expensive(user_id):
 
     cur.execute("""SELECT * FROM receipts
     WHERE user_id = ?
-    ORDER BY datetime_iso DESC LIMIT 5""", (user_id,))
+    ORDER BY prize DESC LIMIT 5""", (user_id,))
     receipts = cur.fetchall()
     con.close()
 
@@ -193,12 +193,85 @@ def get_sum_amount_per_month(user_id):
     #ak je none, vratime 0
     return 0.0
 
+#ziskanie poctu nakupov za dany mesiac
+def get_month_purchase_count(user_id):
+
+    current_month, current_year = get_current_month_and_year()
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT COUNT(*) as purchase_count
+        FROM receipts
+        WHERE user_id = ?
+        AND substr(date, 4, 2) = ?
+        AND substr(date, 7, 4) = ?
+    """, (user_id, current_month, current_year))
+
+    #ziskame a zavrieme
+    row = cur.fetchone()
+    con.close 
+
+    if row:
+        return int(row["purchase_count"])
+    
+    #inak 0
+    return 0
 
 
+#priemerny pocet nakupov za dany mesiac
+def get_average_amount(user_id):
+    #ziskame pocet nakupov a celkovz sunu za mesiac
+    total_sum = get_sum_amount_per_month(user_id)
+    pruchase_count = get_month_purchase_count(user_id)
+
+    if (pruchase_count == 0):
+        return 0.0
+
+
+    return round(total_sum / pruchase_count, 2)
+
+
+#najnavstevovanejsi obchod
+def get_top_month_shop(user_id):
+
+    current_month, current_year = get_current_month_and_year()
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT shop_name, COUNT(*) as shop_count
+        FROM receipts
+        WHERE user_id = ?
+        AND substr(date, 4, 2) = ?
+        AND substr(date, 7, 4) = ?
+        GROUP BY shop_name
+        ORDER BY shop_count DESC, shop_name ASC
+        LIMIT 1
+    """, (user_id, current_month, current_year))
+
+    #ziskame a zavrieme
+    row = cur.fetchone()
+    con.close
+
+    if row and row["shop_name"]:
+        return row["shop_name"]
+
+    return "-"
+
+#vratime vsetko naraz
 def get_dashboard_per_month_stats(user_id):
     return {
-        "total_sum" : get_sum_amount_per_month(user_id)
+        "total_sum" : get_sum_amount_per_month(user_id),
+        "purchase_count" : get_month_purchase_count(user_id),
+        "average_amount" : get_average_amount(user_id),
+        "top_shop" : get_top_month_shop(user_id)
     }
+
 def delete_receipt(receipt_id, user_id):
 
     con = sqlite3.connect(database)

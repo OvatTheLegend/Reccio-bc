@@ -130,7 +130,8 @@ def home():
         dashboard_stats = dashboard_stats,
         last_receipts = last_receipts,
         expensive_receipts = expensive_receipts,
-        how_menu = True)
+        show_menu = True
+        )
 
 # MOJE BLOCKY
 @app.route('/receipts')
