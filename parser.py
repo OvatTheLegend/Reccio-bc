@@ -206,7 +206,7 @@ def parse_items_terno(txt):
     pattern_items = r"(\d+(?:\.\d+)?)x\s+\d+(?:\.|,)\d+\s+(?:\d+\s*%\s+)?(\d+(?:\.|,)\d+)"
 
     #spliting text to list of lines
-    txt = re.sub(r"(?<!\n)(?<!\d\.)\b(\d+)x", r"\n\1x", txt)
+    txt = re.sub(r"(?<!\n)(?<!\d\.)\b(\d+)x(?=\s+\d)", r"\n\1x", txt)
     lines = txt.splitlines()
 
     start_index = None
@@ -382,7 +382,7 @@ def ai_parser_img(file_path):
     - category je kategoria položky musis vybrat jednu z: "Potraviny", "Drogéria", "Lieky", "Elektronika", "Oblečenie", "Ostatné",
     - vitaminy a vyzivove doplnky považuj za lieky
     - hocijake jedlo, ci už to je tycinka, alebo su to chrumky, čipsy -> zarad ako Potraviny
-    - takisto hocijake pitie, dzus, vodka, pivo, voda, preliva voda magnesium atd -> zarad ako potraviny
+    - takisto hocijake pitie, čaje , dzus, vodka, pivo, voda, preliva voda magnesium atd -> zarad ako potraviny
     """
     
     #skusime odoslat
@@ -416,6 +416,83 @@ def ai_parser_img(file_path):
 
         data = json.loads(ai_result)
         return data
+
+    except json.JSONDecodeError as e:
+        print(f"AI vratilo neplatny JSON: {e}")
+        return None
+        
+    except Exception as e:
+        print(f"AI parser chyba: {e}")
+        return None
+
+#funkcia na kategorizaciu poloziek
+def categorize_items_ai(items):
+
+    #ak nie je nastaveny ai kluc tak nespadne appka, len sa preskoci funkcionalita
+    if not config.OPENAI_API_KEY:
+        return None
+
+    #nastavime kluc
+    client = OpenAI(api_key=config.OPENAI_API_KEY)
+
+    items_for_promt = []
+
+    for item in items:
+        items_for_promt.append({
+            "id": item["id"],
+            "item_name": item["item_name"]
+        })
+
+    #promt
+    prompt = f"""
+    Toto su položky z pokladničného bloku, tvojou ulohou je urcit kategoriiu danej položky, nižšie su povolene kategorie a pravidla uvedene.
+    VRÁŤ IBA ČISTÉ JSON POLE.
+    NEPÍŠ žiadny úvod, vysvetlenie ani markdown.
+    
+    Pravidlá su nasledovné:
+
+    - category je kategoria položky musis vybrat jednu z: "Potraviny", "Drogéria", "Lieky", "Elektronika", "Oblečenie", "Ostatné",
+    - vitaminy a vyzivove doplnky považuj za lieky
+    - hocijake jedlo, ci už to je tycinka, alebo su to chrumky, čipsy -> zarad ako Potraviny
+    - takisto hocijake pitie, čaje, dzus, vodka, pivo, voda, preliva voda magnesium atd -> zarad ako potraviny
+    - každá položka musi mať presne priradene id,category
+
+    položky:
+    {json.dumps(items_for_promt, ensure_ascii=False)}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                "role": "user", 
+                "content": prompt
+                }
+            ],
+            max_tokens=700,
+        )
+
+        ai_result = response.choices[0].message.content.strip()
+
+        #odstranime obalenie json bloku
+        ai_result = ai_result.replace("```json", "").replace("```", "").strip()
+
+        data = json.loads(ai_result)
+
+        return_data = []
+
+        for item in data:
+            #ak nahodou nieco chyba tak skip
+            if "id" not in item or "category" not in item:
+                continue
+
+            return_data.append({
+                "id": item["id"],
+                "category" : item["category"]
+            })
+            
+        return return_data
 
     except json.JSONDecodeError as e:
         print(f"AI vratilo neplatny JSON: {e}")

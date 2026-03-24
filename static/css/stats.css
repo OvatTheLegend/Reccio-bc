@@ -1,0 +1,264 @@
+/* hero */
+.stats-hero {
+    background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(245,240,255,0.96));
+    border-radius: 1.5rem;
+    padding: 2rem;
+    box-shadow: 0 16px 40px rgba(31, 23, 66, 0.16);
+}
+
+.stats-subtitle {
+    color: #7c6bb5;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.82rem;
+}
+
+.stats-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1f1a37;
+}
+
+.stats-text {
+    color: #675f85;
+    max-width: 700px;
+}
+
+/* filtre */
+.stats-filters {
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 1.35rem;
+    padding: 1.2rem 1.25rem;
+    box-shadow: 0 14px 34px rgba(31, 23, 66, 0.12);
+}
+
+.stats-filters-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-group .form-label {
+    font-weight: 600;
+    color: #4d4568;
+    margin-bottom: 0.45rem;
+}
+
+.filter-group .form-control {
+    min-height: 48px;
+    border-radius: 0.9rem;
+    border: 1px solid #ddd5f5;
+    box-shadow: none;
+}
+
+.filter-group .form-control:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.14);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.stats-filter-btn {
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #667eea 0%, #9b5cf0 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.75rem 1.15rem;
+}
+
+.stats-filter-btn:hover,
+.stats-filter-btn:focus {
+    background: linear-gradient(90deg, #5f74df 0%, #8e4ff0 100%);
+    color: white;
+}
+
+.stats-reset-btn {
+    border-radius: 999px;
+    border: 1px solid #e0d7ff;
+    background: #f5f1ff;
+    color: #5f4db7;
+    font-weight: 600;
+    padding: 0.75rem 1.15rem;
+}
+
+.stats-reset-btn:hover,
+.stats-reset-btn:focus {
+    background: #ede6ff;
+    color: #4f3faa;
+}
+
+/* spolocna karta */
+.stats-card {
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 1.5rem;
+    padding: 1.4rem;
+    box-shadow: 0 16px 40px rgba(31, 23, 66, 0.14);
+    border: 1px solid rgba(255,255,255,0.35);
+}
+
+/* sumarne karty */
+.stats-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.summary-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 122px;
+}
+
+.summary-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.summary-icon.purple {
+    background: linear-gradient(135deg, #7c5ce6, #9f67ff);
+}
+
+.summary-icon.blue {
+    background: linear-gradient(135deg, #4f8cff, #58b6ff);
+}
+
+.summary-icon.pink {
+    background: linear-gradient(135deg, #ff5fa2, #ff84c0);
+}
+
+.summary-icon.gold {
+    background: linear-gradient(135deg, #ffb347, #ffcc70);
+}
+
+.summary-label {
+    margin: 0 0 0.35rem 0;
+    color: #726a91;
+    font-size: 0.95rem;
+}
+
+.summary-value {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1f1a37;
+}
+
+/* sekcie */
+.section-header {
+    margin-bottom: 1rem;
+}
+
+.section-subtitle {
+    margin: 0 0 0.3rem 0;
+    color: #8c7db7;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.78rem;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1f1a37;
+}
+
+/* hlavny graf */
+.chart-card-large {
+    min-height: 360px;
+}
+
+/* spodne dva grafy */
+.stats-bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.chart-card-small {
+    min-height: 320px;
+}
+
+/* placeholder */
+.stats-chart-placeholder {
+    height: 240px;
+    border-radius: 1.2rem;
+    border: 2px dashed #d9d1f2;
+    background: linear-gradient(135deg, #faf8ff, #f6f2ff);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #7b6ba7;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 1rem;
+}
+
+.stats-chart-placeholder i {
+    font-size: 2rem;
+}
+
+/* responsive */
+@media (max-width: 1200px) {
+    .stats-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    .stats-filters-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .stats-bottom-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-filters-form {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        width: 100%;
+    }
+
+    .stats-filter-btn,
+    .stats-reset-btn {
+        width: 100%;
+    }
+
+    .stats-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-title {
+        font-size: 1.7rem;
+    }
+
+    .stats-hero {
+        padding: 1.35rem;
+    }
+
+    .stats-card {
+        padding: 1rem;
+    }
+}

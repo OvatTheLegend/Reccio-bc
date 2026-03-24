@@ -2,6 +2,8 @@ import sqlite3, re
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import config
+import calendar
+import parser
 
 database = config.DATABASE_PATH
 
@@ -99,14 +101,93 @@ def get_file_path(receipt_id, user_id):
     row = cur.fetchone()
     con.close()
 
-    print(f"get_file_path: receipt_id={receipt_id}, user_id={user_id}, row={row}") 
     if row:
         return row[0]
     else:
         return None
 
-def get_all_receipts(user_id):
+#pocet nekategorizovanych poloziek
+def get_uncategorized_count(user_id):
 
+    #pripojenie k databze
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    # spocitame nezaradene pre daneho usera
+    cur.execute("""
+        SELECT COUNT(*) as total
+        FROM items i
+        JOIN receipts r ON i.receipt_id = r.id
+        WHERE r.user_id = ?
+        AND LOWER(i.category) = 'nezaradené'
+    """, (user_id,))
+
+    row = cur.fetchone()
+    con.close()
+
+    #vratime
+    if row:
+        return int(row["total"])
+
+    return 0
+
+#cvytiahneme vsetky nezaradene polozky
+def get_uncategorized_items(user_id):
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    # vsetky nezaradnee polozky blkockov
+    cur.execute("""
+        SELECT i.id, i.item_name
+        FROM items i
+        JOIN receipts r ON i.receipt_id = r.id
+        WHERE r.user_id = ?
+        AND LOWER(i.category) = 'nezaradené'
+        ORDER BY i.id ASC
+    """, (user_id,))
+
+    items = cur.fetchall()
+    con.close()
+
+    #vsetky vratime ako dict like object
+    return items
+
+#zaradenie poloziek na konkretne kategorie
+def categorize_items(item_id, category):
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+    #zapisanie kategorie
+    cur.execute("""
+        UPDATE items
+        SET category = ?
+        WHERE id = ?
+    """, (category, item_id))
+
+    con.commit()
+    changed = cur.rowcount
+    con.close()
+
+    return changed
+
+#aby sme ai neposielali vela udajov naraz, rozdelime velke hodnoty na skupiny
+def split_into_groups(items, group_size=50):
+    
+    groups = []
+
+    for i in range(0, len(items), group_size):
+        groups.append(items[i:i + group_size])
+
+    #vratime list skupniek
+    return groups
+
+
+def get_all_receipts(user_id):
+    
     con = sqlite3.connect(database)
 
     #aby sa sa vracal dict-like obejkt, kvoli prehladnosti v html
@@ -158,19 +239,46 @@ def get_top_5_expensive(user_id):
 
     return receipts
 
-#vrati sucasny mesiac a rok
-def get_current_month_and_year():
 
-    #aktualny
+def get_current_month_range():
+    # ziskame akutalny cas
     now = datetime.now()
-    month = f"{now.month:02d}"
-    year = f"{now.year}"
 
-    return month, year
+    # zaciatgok mesiaca
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # zaciatok druheho
+    #ak december tak dame na + rok a nastavime zaciatok
+    if now.month == 12:
+        next_month_start = now.replace(
+            year=now.year + 1,
+            month=1,
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
+    #inak pokracujeme
+    else:
+        next_month_start = now.replace(
+            month=now.month + 1,
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
+
+    # voba vratime v datetimeiso formate na rychle porovnanvania
+    return (
+        month_start.strftime("%Y-%m-%d %H:%M:%S"),
+        next_month_start.strftime("%Y-%m-%d %H:%M:%S")
+    )
 
 def get_sum_amount_per_month(user_id):
 
-    current_month, current_year = get_current_month_and_year()
+    month_start, next_month_start = get_current_month_range()
 
     con = sqlite3.connect(database)
     con.row_factory = sqlite3.Row
@@ -180,9 +288,9 @@ def get_sum_amount_per_month(user_id):
         SELECT COALESCE(SUM(prize), 0) AS total_sum
         FROM receipts
         WHERE user_id = ?
-        AND substr(date, 4, 2) = ?
-        AND substr(date, 7, 4) = ?
-    """, (user_id, current_month, current_year))
+        AND datetime_iso >= ?
+        AND datetime_iso < ?
+    """, (user_id, month_start, next_month_start))
 
     row = cur.fetchone()
     con.close()
@@ -196,7 +304,7 @@ def get_sum_amount_per_month(user_id):
 #ziskanie poctu nakupov za dany mesiac
 def get_month_purchase_count(user_id):
 
-    current_month, current_year = get_current_month_and_year()
+    month_start, next_month_start = get_current_month_range()
 
     con = sqlite3.connect(database)
     con.row_factory = sqlite3.Row
@@ -206,13 +314,13 @@ def get_month_purchase_count(user_id):
         SELECT COUNT(*) as purchase_count
         FROM receipts
         WHERE user_id = ?
-        AND substr(date, 4, 2) = ?
-        AND substr(date, 7, 4) = ?
-    """, (user_id, current_month, current_year))
+        AND datetime_iso >= ?
+        AND datetime_iso < ?
+    """, (user_id, month_start, next_month_start))
 
     #ziskame a zavrieme
     row = cur.fetchone()
-    con.close 
+    con.close()
 
     if row:
         return int(row["purchase_count"])
@@ -237,7 +345,7 @@ def get_average_amount(user_id):
 #najnavstevovanejsi obchod
 def get_top_month_shop(user_id):
 
-    current_month, current_year = get_current_month_and_year()
+    month_start, next_month_start = get_current_month_range()
 
     con = sqlite3.connect(database)
     con.row_factory = sqlite3.Row
@@ -247,16 +355,16 @@ def get_top_month_shop(user_id):
         SELECT shop_name, COUNT(*) as shop_count
         FROM receipts
         WHERE user_id = ?
-        AND substr(date, 4, 2) = ?
-        AND substr(date, 7, 4) = ?
+        AND datetime_iso >= ?
+        AND datetime_iso < ?
         GROUP BY shop_name
         ORDER BY shop_count DESC, shop_name ASC
         LIMIT 1
-    """, (user_id, current_month, current_year))
+    """, (user_id, month_start, next_month_start))
 
     #ziskame a zavrieme
     row = cur.fetchone()
-    con.close
+    con.close()
 
     if row and row["shop_name"]:
         return row["shop_name"]
@@ -271,6 +379,102 @@ def get_dashboard_per_month_stats(user_id):
         "average_amount" : get_average_amount(user_id),
         "top_shop" : get_top_month_shop(user_id)
     }
+
+#funkcia na ziskanie udajov pre graf
+def get_daily_expenses_for_current_month(user_id):
+
+    month_start, next_month_start = get_current_month_range()
+
+    #momentalny cas
+    now = datetime.now()
+
+    #rok a mesiac
+    year = now.year
+    month = now.month
+
+    #musime ziszi kolko dni ma mesiac aktualny
+    days_in_month = calendar.monthrange(year,month)[1]
+
+    #spravime vynulovane pole 
+    daily_totals = {}
+    for day in range(1, days_in_month+1):
+        daily_totals[day] = 0
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+    SELECT CAST(substr(datetime_iso,9,2) AS INTEGER) as day, SUM(prize) as total
+    FROM receipts
+    WHERE user_id = ?
+    AND datetime_iso >= ?
+    AND datetime_iso <= ?
+    GROUP BY day
+    ORDER BY day ASC
+    
+    """, (user_id, month_start, next_month_start))
+
+    rows = cur.fetchall()
+    con.close()
+
+    for row in rows:
+        day = row["day"]
+        total = row["total"]
+
+        #kontrola ci neni none
+        if day is not None and total is not None:
+            daily_totals[int(day)] = round(float(total),2)
+    
+    #pripravime pre graf
+    values = []
+    labels = []
+    for day in range(1,days_in_month+1):
+        labels.append(str(day))
+        values.append(daily_totals[day])
+
+    return {
+        "labels" : labels,
+        "values" : values
+    }
+
+#hodnoty pre graf kategori
+def get_category_stat_for_current_month(user_id):
+
+    month_start, next_month_start = get_current_month_range()
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+    SELECT i.category, COALESCE(SUM(i.prize), 0) as total
+    FROM items i
+    JOIN receipts r ON i.receipt_id = r.id
+    WHERE r.user_id = ?
+    AND r.datetime_iso >= ?
+    AND r.datetime_iso <= ?
+    GROUP BY i.category
+    ORDER BY total DESC
+    
+    """, (user_id, month_start, next_month_start))
+
+    rows = cur.fetchall()
+    con.close()
+    
+    #pripravime pre graf
+    values = []
+    labels = []
+
+    for row in rows:
+        labels.append(row["category"])
+        values.append(round(float(row["total"]),2))
+
+    return {
+        "labels" : labels,
+        "values" : values
+    }
+
 
 def delete_receipt(receipt_id, user_id):
 
@@ -331,6 +535,49 @@ def get_items(receipt_id, user_id):
 
     #a vratime
     return item_list
+
+#na filttovanie blockov
+def get_filtered_receipts(user_id, search, date_from, date_to):
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    #skladame query podla parametrovv
+    query = """
+        SELECT id, shop_name, date, time, prize
+        FROM receipts
+        WHERE user_id = ?
+        """
+    
+    #list kde budeme ukladat parametre a nakoniec executeneme poskaldanu query
+    parameters = [user_id]
+
+    #ak je nieco v search
+    if search:
+        query += " AND LOWER(shop_name) LIKE ?"
+        parameters.append(f"%{search.lower()}%")
+
+    #ak je zadany datum od
+    if date_from:
+        query += " AND datetime_iso >= ?"
+        #aby sme mali v spravnom formate 
+        parameters.append(date_from + " 00:00:00")
+
+    #ak je datum do
+    if date_to:
+        query += " AND datetime_iso <= ?"
+        parameters.append(date_to + " 23:59:59")
+
+    #este zoradenie 
+    query += " ORDER BY datetime_iso DESC"
+
+    #ziskame a zavrieme
+    cur.execute(query,parameters)
+    receipts = cur.fetchall()
+    con.close()
+
+    return receipts
 #-----------------------------------------------------------------------------------------------
 
 #---------------------------------------------------LOGIN/REGISTRATION SECTION---------------------------

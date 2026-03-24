@@ -35,7 +35,7 @@ function validataSignin(){
     if (!username || !password) {
         Swal.fire({ 
             icon: 'warning',
-            title: 'Vyplňte všetky polia' 
+            title: 'Vyplňte všetky polia.' 
         });
         return false;
     }
@@ -54,7 +54,7 @@ function validateRegister(){
     if (!username || !password || !passwordRepeat) {
         Swal.fire({ 
             icon: 'warning', 
-            title: 'Vyplňte všetky polia' 
+            title: 'Vyplňte všetky polia.' 
         });
         return false;
     }

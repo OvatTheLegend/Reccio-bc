@@ -125,29 +125,39 @@ async function showOrigin(receiptId){
     const contentType = response.headers.get('Content-Type') || '';
     let previewHTML;
 
-    //pre pdf -iframe
+    // ak pdf zak zobrazime cez iframe
     if (contentType.includes('pdf')) {
-        previewHTML = `<iframe src="${url}" width="100%" height="100%" style="border:none;"></iframe>`;
-    
-    // pre img - img tag
-    } else if (contentType.includes('image')) {
-        previewHTML = `<img src="${url}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+        previewHTML = `
+            <div class="receipt-preview-wrapper pdf-preview-wrapper">
+                <iframe src="${url}#zoom=page-width" class="receipt-preview-frame"></iframe>
+            </div>
+`;
+    }
 
-    // ak nepozname, tak nove okno
-    } else {
+    // obrazok zobrazjeme cez img
+    else if (contentType.includes('image')) {
+        previewHTML = `
+            <div class="receipt-preview-wrapper image-preview-wrapper">
+                <img src="${url}" class="receipt-preview-image">
+            </div>
+        `;
+    }
+
+    // nerozpnonany subor otvorime na novom okne
+    else {
         window.open(url, '_blank');
         return;
     }
 
     Swal.fire({
-        html: previewHTML,      
-        width: "100%",           
-        padding: "0",          
+        html: previewHTML,
+        width: '90vw',
+        padding: '0.75rem',
         showConfirmButton: false,
-        showCloseButton: true,    
+        showCloseButton: true,
         customClass: {
-        popup: 'receipt-preview-popup',  
-        htmlContainer: 'receipt-preview-html'
+            popup: 'receipt-preview-popup',
+            htmlContainer: 'receipt-preview-html'
         }
     });
 }   

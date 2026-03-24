@@ -5,7 +5,7 @@ async function logout(event){
     //popup pomocou kniznice
     const result = await Swal.fire({
         title: "Chcete sa odhásiť?",
-        icon: "warning",     
+        icon: "question",     
         showCancelButton: true,
         confirmButtonText: "Áno, odhlásiť",
         cancelButtonText: "Zrušiť",

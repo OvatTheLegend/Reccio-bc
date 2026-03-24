@@ -98,7 +98,6 @@ def login():
             #vsetko prebehlo uspesne, usera na session, redirect na domovsku stranku
             #po zatvoreni stranky odhlasi pouzivatela
             session.permanent = False
-            print("odhlasim po zatvoreni")
 
             session['user_id'] = user_id
             session['username'] = username
@@ -122,16 +121,67 @@ def home():
 
     user_id = session.get('user_id')
 
+    uncategorized_count = helper.get_uncategorized_count(user_id)
+
     dashboard_stats = helper.get_dashboard_per_month_stats(user_id)
     last_receipts = helper.get_last_5_receipts(user_id)
     expensive_receipts = helper.get_top_5_expensive(user_id)
+    #graf
+
+    expenses_chart = helper.get_daily_expenses_for_current_month(user_id)
+    category_chart = helper.get_category_stat_for_current_month(user_id)
+
 
     return render_template('home.html',
         dashboard_stats = dashboard_stats,
         last_receipts = last_receipts,
         expensive_receipts = expensive_receipts,
+        expenses_chart = expenses_chart,
+        category_chart = category_chart,
+        uncategorized_count = uncategorized_count,
         show_menu = True
         )
+
+@app.route('/categorize_all_items', methods=['POST'])
+def categorize_all_items():
+
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session.get('user_id')
+
+    uncategorized_items = helper.get_uncategorized_items(user_id)
+
+    if not uncategorized_items:
+        return jsonify({
+        "success": True, 
+        "updated_count": 0, 
+        "message": "Všetky položky majú svoje kategórie." })
+
+    groups = helper.split_into_groups(uncategorized_items, 100)
+
+    updated_count = 0
+
+    for group in groups:
+        categorized_items = parser.categorize_items_ai(group)
+
+        #ak skupinka zlyha tak stopneme a vratime chybu
+
+        if categorized_items is None:
+            return jsonify({
+                "success": False, 
+                "message": "Kategorizácia zlyhala, skontrolujte internetové pripojenie" })
+        
+        for item in categorized_items:
+            changed = helper.categorize_items(item["id"], item["category"])
+            updated_count += changed
+    
+    return jsonify({
+        "success": True, 
+        "updated_count": updated_count, 
+        "message": f"{updated_count} položkám boli priradené kategórie."})
+
+
 
 # MOJE BLOCKY
 @app.route('/receipts')
@@ -140,9 +190,28 @@ def receipts():
         return redirect(url_for('login'))
 
     user_id = session.get('user_id')
-    receipts = helper.get_all_receipts(user_id)
-    return render_template('receipts.html', receipts = receipts, show_menu = True)
 
+    #najprv ziskame filtre z url
+    search = request.args.get('search', '').strip()
+    date_from = request.args.get('date_from','').strip()
+    date_to = request.args.get('date_to','').strip()
+
+    #ak nieje zadany filter zobrazime vsetky
+    if not search and not date_from and not date_to:
+        receipts = helper.get_all_receipts(user_id)
+
+    else:
+        receipts = helper.get_filtered_receipts(user_id,search, date_from, date_to)
+
+    return render_template(
+    'receipts.html',
+        receipts = receipts,
+        show_menu = True,
+        search = search,
+        date_from = date_from,
+        date_to = date_to,
+    )
+    
 @app.route('/delete_receipt/<int:receipt_id>', methods=['DELETE'])
 def delete_receipt(receipt_id):
 
@@ -415,7 +484,6 @@ def open_webbrowser():
 
 
 if __name__ == '__main__':
-    print("🌐 Appka beží na: http://127.0.0.1:5000")
 
 
     #otvori prehlaidac

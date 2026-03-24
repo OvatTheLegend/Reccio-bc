@@ -7,4 +7,145 @@
 <!-- teraz cely obsah podstranky -->
 {% block content %}
 
+{% extends "base.html" %}
+
+{% block title %}ComfYe-Blok - Štatistiky{% endblock %}
+
+{% block css_addon %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/stats.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- hero sekcia -->
+<section class="stats-hero mb-4">
+    <div class="stats-hero-content">
+        <div>
+            <p class="stats-subtitle mb-2">Analýza výdavkov</p>
+            <h1 class="stats-title mb-2">Štatistiky</h1>
+            <p class="stats-text mb-0">
+                Detailný prehľad výdavkov podľa obdobia, kategórií a obchodov.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- filter obdobia -->
+<section class="stats-filters mb-4">
+    <form class="stats-filters-form">
+        <div class="filter-group">
+            <label for="date_from" class="form-label">Od dátumu</label>
+            <input type="date" id="date_from" class="form-control">
+        </div>
+
+        <div class="filter-group">
+            <label for="date_to" class="form-label">Do dátumu</label>
+            <input type="date" id="date_to" class="form-control">
+        </div>
+
+        <div class="filter-actions">
+            <button type="button" class="btn stats-filter-btn">
+                <i class="bi bi-search me-1"></i>Filtrovať
+            </button>
+
+            <button type="button" class="btn stats-reset-btn">
+                <i class="bi bi-x-circle me-1"></i>Reset
+            </button>
+        </div>
+    </form>
+</section>
+
+<!-- sumarne karty -->
+<section class="stats-summary-grid mb-4">
+    <div class="stats-card summary-card">
+        <div class="summary-icon purple">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div>
+            <p class="summary-label">Celková suma</p>
+            <h3 class="summary-value">0 €</h3>
+        </div>
+    </div>
+
+    <div class="stats-card summary-card">
+        <div class="summary-icon blue">
+            <i class="bi bi-bag-check"></i>
+        </div>
+        <div>
+            <p class="summary-label">Počet nákupov</p>
+            <h3 class="summary-value">0</h3>
+        </div>
+    </div>
+
+    <div class="stats-card summary-card">
+        <div class="summary-icon pink">
+            <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <div>
+            <p class="summary-label">Priemerný nákup</p>
+            <h3 class="summary-value">0 €</h3>
+        </div>
+    </div>
+
+    <div class="stats-card summary-card">
+        <div class="summary-icon gold">
+            <i class="bi bi-shop"></i>
+        </div>
+        <div>
+            <p class="summary-label">Top obchod</p>
+            <h3 class="summary-value">-</h3>
+        </div>
+    </div>
+</section>
+
+<!-- velky hlavny graf -->
+<section class="stats-main-chart mb-4">
+    <div class="stats-card chart-card-large">
+        <div class="section-header">
+            <div>
+                <p class="section-subtitle">Prehľad v čase</p>
+                <h2 class="section-title">Mesačné výdavky</h2>
+            </div>
+        </div>
+
+        <div class="stats-chart-placeholder">
+            <i class="bi bi-bar-chart-line"></i>
+            <span>Sem pridáme graf mesačných výdavkov</span>
+        </div>
+    </div>
+</section>
+
+<!-- dva grafy vedla seba -->
+<section class="stats-bottom-grid">
+    <div class="stats-card chart-card-small">
+        <div class="section-header">
+            <div>
+                <p class="section-subtitle">Rozdelenie</p>
+                <h2 class="section-title">Výdavky podľa kategórií</h2>
+            </div>
+        </div>
+
+        <div class="stats-chart-placeholder">
+            <i class="bi bi-pie-chart"></i>
+            <span>Sem pridáme graf kategórií</span>
+        </div>
+    </div>
+
+    <div class="stats-card chart-card-small">
+        <div class="section-header">
+            <div>
+                <p class="section-subtitle">Obchody</p>
+                <h2 class="section-title">Výdavky podľa obchodov</h2>
+            </div>
+        </div>
+
+        <div class="stats-chart-placeholder">
+            <i class="bi bi-shop-window"></i>
+            <span>Sem pridáme graf obchodov</span>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
 {% endblock %}

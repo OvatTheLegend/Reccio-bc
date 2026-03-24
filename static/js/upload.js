@@ -55,7 +55,7 @@ async function upload_pdf(){
     //ak nie je vybraty subor -> warning
     if (!file.files[0]) {
         Swal.fire({
-            tittle: "Nie je vybratý žiadny súbor",
+            title: "Nie je vybratý žiadny súbor",
             icon: "warning",
             text: "najprv vyber súbor!",
         });

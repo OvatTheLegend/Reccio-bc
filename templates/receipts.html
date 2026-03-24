@@ -1,61 +1,156 @@
 {% extends "base.html" %}
 
-<!-- nazov podstranky -->
-{% block title %}ComfYe-Blok - Moje Bločky{% endblock %}
+{% block title %}ComfYe-Blok - Moje bločky{% endblock %}
 
-<!-- vlastny css -->
 {% block css_addon %}
- <link rel="stylesheet" href="{{ url_for('static', filename='css/receipts.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/receipts.css') }}">
 {% endblock %}
 
-<!-- vlastny javascript -->
 {% block js_addon %}
 <script src="{{ url_for('static', filename='js/receipts.js') }}"></script>
 {% endblock %}
 
-<!-- teraz cely obsah podstranky -->
 {% block content %}
 
-<div class="blocky_container">
+<!-- hlavickaa -->
+<section class="receipts-hero mb-4">
+    <div class="receipts-hero-content">
+        <div>
+            <h1 class="receipts-title mb-2">Moje bločky</h1>
+            <p class="receipts-text mb-0">
+                Tu nájdete prehľad všetkých vašich bločkov
+            </p>
+        </div>
+
+        <a class="btn add-receipt-btn" href="{{ url_for('upload') }}">
+            <i class="bi bi-receipt-cutoff me-2"></i>Pridať bloček
+        </a>
+    </div>
+</section>
+
+<!-- filtre  -->
+<section class="receipts-filters mb-4">
+    <form method="GET" action="{{ url_for('receipts') }}" class="filters-form">
+
+        <!-- podla obchodu -->
+        <div class="filter-group filter-search">
+            <label for="search" class="form-label">Hľadať obchod</label>
+            <input
+                type="text"
+                id="search"
+                name="search"
+                class="form-control"
+                placeholder="Napr. Tesco, Lidl, Terno..."
+                value="{{ search or '' }}"
+            >
+        </div>
+
+        <!-- datumu od -->
+        <div class="filter-group">
+            <label for="date_from" class="form-label">Od dátumu</label>
+            <input
+                type="date"
+                id="date_from"
+                name="date_from"
+                class="form-control"
+                value="{{ date_from or '' }}"
+            >
+        </div>
+
+        <!-- datumu do-->
+        <div class="filter-group">
+            <label for="date_to" class="form-label">Do dátumu</label>
+            <input
+                type="date"
+                id="date_to"
+                name="date_to"
+                class="form-control"
+                value="{{ date_to or '' }}"
+            >
+        </div>
+
+        <!-- filtovat button -->
+        <div class="filter-actions">
+            <button type="submit" class="btn filter-btn">
+                <i class="bi bi-search me-1"></i>Filtrovať
+            </button>
+
+            <a href="{{ url_for('receipts') }}" class="btn reset-btn">
+                <i class="bi bi-x-circle me-1"></i>Reset
+            </a>
+        </div>
+
+    </form>
+</section>
+
+<!-- blocky -->
+<section class="receipts-list-section">
     {% if receipts %}
-        {% for receipt in receipts %}
-            <ul id="receipt-{{ receipt.id }}">
-                    <!-- informacie o udajoch blocku -->
-                <li class="receipt_shop"> {{ receipt.shop_name }} </li>
-                <li class="receipt_date"> {{ receipt.date }} </li>
-                <li class="receipt_time"> {{ receipt.time }} </li>
-                <li class="receipt_price"> {{ receipt.prize }} € </li>
-                    <li class="receipt_card_buttons">
-                    <!-- detail blocku -->
-                    <button class="btn_receipt_detail" 
-                        data-id="{{ receipt.id }}"
-                        onclick="showDetails(this.dataset.id)">
-                        Detail ▼
-                    </button>
+        <div class="receipts-list">
+            {% for receipt in receipts %}
+                <div class="receipt-card" id="receipt-{{ receipt.id }}">
+                    <!-- lava strana blocku -->
+                    <div class="receipt-card-main">
+                        <div class="receipt-inline-info">
+                            <!-- nazov obcohdu -->
+                            <div class="receipt-shop">{{ receipt.shop_name }}</div>
+                                <div class="receipt-meta-item">
+                                    <!--datum -->
+                                <i class="bi bi-calendar-event me-1"></i>{{ receipt.date }}
+                            </div>
+                            <!--cas  -->
+                            <div class="receipt-meta-item">
+                                <i class="bi bi-clock me-1"></i>{{ receipt.time }}
+                            </div>
+                            <!-- suma -->
+                            <div class="receipt-price">{{ receipt.prize }} €</div>
+                        </div>
+                    </div>
 
-                    <!-- vlozeny blocek -->
-                    <button class="btn_receipt_detail" 
-                        data-id="{{ receipt.id }}"
-                        onclick="showOrigin(this.dataset.id)">
-                        Original
-                    </button>
+                    <!-- prava straran -->
+                    <div class="receipt-card-actions">
 
-                    <!-- odstranenie blocku -->
-                    <button class="btn_receipt_delete"
-                        data-id="{{ receipt.id }}"
-                        onclick="deleteReceipt(this.dataset.id)">
-                        X
-                    </button>
-                </li>
-            </ul>
-        {% endfor %}
-        
+                        <!-- detail -->
+                        <button
+                            class="btn receipt-btn btn-detail"
+                            data-id="{{ receipt.id }}"
+                            onclick="showDetails(this.dataset.id)"
+                        >
+                            <i class="bi bi-list-ul me-1"></i>Detail
+                        </button>
+
+                        <!-- originalny subor -->
+                        <button
+                            class="btn receipt-btn btn-origin"
+                            data-id="{{ receipt.id }}"
+                            onclick="showOrigin(this.dataset.id)"
+                        >
+                            <i class="bi bi-file-earmark-text me-1"></i>Originál
+                        </button>
+
+                        <!-- odstanit -->
+                        <button
+                            class="btn receipt-btn btn-delete"
+                            data-id="{{ receipt.id }}"
+                            onclick="deleteReceipt(this.dataset.id)"
+                        >
+                            <i class="bi bi-trash3 me-1"></i>Zmazať
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
     {% else %}
-        <div class="default_message">
-            <p>Zatiaľ nemáte žiadne bločky</p>
+        <div class="receipts-empty">
+            <i class="bi bi-inbox text-dark"></i>
+            <h2>Nenašli sa žiadne bločky</h2>
+
+            <a class="btn add-receipt-btn mt-2" href="{{ url_for('upload') }}">
+                <i class="bi bi-receipt-cutoff me-2 fs-6"></i>Pridať bloček
+            </a>
         </div>
     {% endif %}
-
-</div>
+</section>
 
 {% endblock %}
