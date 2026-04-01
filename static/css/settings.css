@@ -1,0 +1,54 @@
+.settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.settings-card {
+    background: rgba(255,255,255,0.97);
+    padding: 1.5rem;
+    border-radius: 1.4rem;
+    box-shadow: 0 12px 30px rgba(31,23,66,0.12);
+}
+
+.settings-card h2 {
+    margin-bottom: 1rem;
+}
+
+.settings-card label {
+    display: block;
+    margin-top: 0.8rem;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+}
+
+.settings-btn {
+    margin-top: 1rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #667eea, #9b5cf0);
+    color: white;
+    padding: 0.6rem 1.2rem;
+}
+
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settings-note {
+    margin-top: 0.6rem;
+    color: #777;
+    font-size: 0.9rem;
+}
+
+.settings-list {
+    margin-top: 0.8rem;
+    margin-bottom: 0;
+    padding-left: 1.2rem;
+    color: #555;
+}
+
+.settings-list li {
+    margin-bottom: 0.35rem;
+}

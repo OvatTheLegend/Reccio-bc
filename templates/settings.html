@@ -1,9 +1,73 @@
 {% extends "base.html" %}
 
-<!-- nazov podstranky -->
-{% block title %}ComfYe-Blok{% endblock %}
+{% block title %}Nastavenia | ComfYe-Blok{% endblock %}
 
-<!-- teraz cely obsah podstranky -->
+{% block css_addon %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block js_addon %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+{% endblock %}
+
 {% block content %}
+
+<div class="settings-container">
+
+    <!-- PROFIL -->
+    <div class="settings-card">
+        <h2>Profil</h2>
+
+        <!-- USERNAME -->
+        <form id="profile-form">
+            <label>Používateľské meno</label>
+            <input type="text" name="username" id="username" value="{{ settings.username }}" class="form-control">
+
+            <button type="submit" class="btn settings-btn">Uložiť meno</button>
+        </form>
+
+        <!-- PASSWORD -->
+        <form id="password-form">
+            <label>Nové heslo</label>
+            <input type="password" name="new_password" id="new_password" class="form-control">
+
+            <button type="submit" class="btn settings-btn">Zmeniť heslo</button>
+        </form>
+    </div>
+
+    <!-- EMAIL -->
+    <div class="settings-card">
+        <h2>Email import</h2>
+
+        <form id="email-form">
+            <label>Emailová adresa</label>
+            <input type="text" name="email" id="email" value="{{ settings.email }}" class="form-control">
+
+            <label>App password</label>
+            <input type="password" name="email_password" value="{{ settings.email_password }}" class="form-control">
+
+            <label>Sledované emaily / obchody</label>
+            <textarea name="email_filters" class="form-control" rows="4">{{ settings.email_filters }}</textarea>
+
+            <button type="submit" class="btn settings-btn">Uložiť email</button>
+        </form>
+    </div>
+
+    <!-- ONLINE -->
+    <div class="settings-card">
+        <h2>Online funkcie</h2>
+
+        <p class="settings-note">
+            AI funkcie a import z emailu sú dostupné iba pri online pripojení.
+        </p>
+
+        <ul class="settings-list">
+            <li>AI spracovanie nepodporovaných bločkov</li>
+            <li>AI dopĺňanie kategórií položiek</li>
+            <li>Import blokov z emailu</li>
+        </ul>
+    </div>
+
+</div>
 
 {% endblock %}

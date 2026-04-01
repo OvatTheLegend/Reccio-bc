@@ -17,7 +17,8 @@ def init_database():
         username TEXT NOT NULL UNIQUE,
         password_hashed TEXT NOT NULL,
         email_addres TEXT,
-        email_2fa_password TEXT
+        email_2fa_password TEXT,
+        email_filters TEXT
         )""")
 
 

@@ -215,6 +215,12 @@
     font-size: 2rem;
 }
 
+.chart-box {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
 /* responsive */
 @media (max-width: 1200px) {
     .stats-summary-grid {

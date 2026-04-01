@@ -4,17 +4,32 @@
 <!-- nazov podstranky -->
 {% block title %}ComfYe-Blok - Štatistiky {% endblock %}
 
-<!-- teraz cely obsah podstranky -->
-{% block content %}
-
-{% extends "base.html" %}
-
-{% block title %}ComfYe-Blok - Štatistiky{% endblock %}
-
 {% block css_addon %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/stats.css') }}">
 {% endblock %}
 
+<!-- js -->
+{% block js_addon %}
+<script src="{{ url_for('static', filename='js/stats.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    //mesacny graf
+    const monthlyLabels = {{ monthly_chart["labels"] | tojson }};
+    const monthlyValues = {{ monthly_chart["values"] | tojson }};
+
+    //vydavky na kategorie
+    const categoryLabels = {{ category_chart["labels"] | tojson }};
+    const categoryValues = {{ category_chart["values"] | tojson }};
+
+    //vedavky na dany obchod
+    const shopLabels = {{ shop_chart["labels"] | tojson }};
+    const shopValues = {{ shop_chart["values"] | tojson }};
+</script>
+
+{% endblock %}
+
+<!-- teraz cely obsah podstranky -->
 {% block content %}
 
 <!-- hero sekcia -->
@@ -24,7 +39,7 @@
             <p class="stats-subtitle mb-2">Analýza výdavkov</p>
             <h1 class="stats-title mb-2">Štatistiky</h1>
             <p class="stats-text mb-0">
-                Detailný prehľad výdavkov podľa obdobia, kategórií a obchodov.
+                Detailný prehľad výdavkov za posledných 6 mesiacov. Pre konkrétnejšie obodobie aplikujte filter
             </p>
         </div>
     </div>
@@ -32,25 +47,25 @@
 
 <!-- filter obdobia -->
 <section class="stats-filters mb-4">
-    <form class="stats-filters-form">
+    <form class="stats-filters-form" method="GET" action="{{ url_for('stats') }}">
         <div class="filter-group">
             <label for="date_from" class="form-label">Od dátumu</label>
-            <input type="date" id="date_from" class="form-control">
+            <input type="date" id="date_from" name="date_from" class="form-control" value="{{ date_from }}">
         </div>
 
         <div class="filter-group">
             <label for="date_to" class="form-label">Do dátumu</label>
-            <input type="date" id="date_to" class="form-control">
+            <input type="date" id="date_to" name="date_to" class="form-control" value="{{ date_to }}">
         </div>
 
         <div class="filter-actions">
-            <button type="button" class="btn stats-filter-btn">
+            <button type="submit" class="btn stats-filter-btn">
                 <i class="bi bi-search me-1"></i>Filtrovať
             </button>
 
-            <button type="button" class="btn stats-reset-btn">
+            <a href="{{ url_for('stats') }}" class="btn stats-reset-btn">
                 <i class="bi bi-x-circle me-1"></i>Reset
-            </button>
+            </a>
         </div>
     </form>
 </section>
@@ -63,37 +78,42 @@
         </div>
         <div>
             <p class="summary-label">Celková suma</p>
-            <h3 class="summary-value">0 €</h3>
+            <h3 class="summary-value">{{ summary_stats.total_sum }} €</h3>
         </div>
     </div>
 
     <div class="stats-card summary-card">
         <div class="summary-icon blue">
-            <i class="bi bi-bag-check"></i>
+            <i class="bi bi-receipt-cutoff"></i>
         </div>
         <div>
-            <p class="summary-label">Počet nákupov</p>
-            <h3 class="summary-value">0</h3>
+            <p class="summary-label">Počet bločkov</p>
+            <h3 class="summary-value">{{ summary_stats.receipt_count }}</h3>
         </div>
     </div>
 
     <div class="stats-card summary-card">
         <div class="summary-icon pink">
-            <i class="bi bi-graph-up-arrow"></i>
+            <i class="bi bi-tags"></i>
         </div>
         <div>
-            <p class="summary-label">Priemerný nákup</p>
-            <h3 class="summary-value">0 €</h3>
+            <p class="summary-label">Najkupovanejšia kategória</p>
+            <h3 class="summary-value">{{ summary_stats.top_category }}</h3>
         </div>
     </div>
 
     <div class="stats-card summary-card">
         <div class="summary-icon gold">
-            <i class="bi bi-shop"></i>
+            <i class="bi bi-box-seam"></i>
         </div>
         <div>
-            <p class="summary-label">Top obchod</p>
-            <h3 class="summary-value">-</h3>
+            <p class="summary-label">Najkupovanejšia položka</p>
+                <h3 class="summary-value">
+                    {{ summary_stats.top_item }}
+                    {% if summary_stats.top_item != '-' %}
+                    ({{ summary_stats.top_item_amount }})
+                    {% endif %}
+                </h3>
         </div>
     </div>
 </section>
@@ -108,9 +128,8 @@
             </div>
         </div>
 
-        <div class="stats-chart-placeholder">
-            <i class="bi bi-bar-chart-line"></i>
-            <span>Sem pridáme graf mesačných výdavkov</span>
+        <div class="chart-box">
+            <canvas id="monthlyExpensesChart"></canvas>
         </div>
     </div>
 </section>
@@ -125,9 +144,8 @@
             </div>
         </div>
 
-        <div class="stats-chart-placeholder">
-            <i class="bi bi-pie-chart"></i>
-            <span>Sem pridáme graf kategórií</span>
+        <div class="chart-box">
+            <canvas id="categoryExpensesChart"></canvas>
         </div>
     </div>
 
@@ -139,13 +157,10 @@
             </div>
         </div>
 
-        <div class="stats-chart-placeholder">
-            <i class="bi bi-shop-window"></i>
-            <span>Sem pridáme graf obchodov</span>
+        <div class="chart-box">
+            <canvas id="shopExpensesChart"></canvas>
         </div>
     </div>
 </section>
-
-{% endblock %}
 
 {% endblock %}

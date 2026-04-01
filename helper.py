@@ -276,6 +276,33 @@ def get_current_month_range():
         next_month_start.strftime("%Y-%m-%d %H:%M:%S")
     )
 
+def get_default_stats_date_range():
+
+    #
+    today = datetime.now()
+
+    #default je poslednych 6 mesiacov
+    year = today.year
+    month = today.month
+
+    # - 5 mesiacov aby sme mali poslednych 5 + aktualny
+    for _ in range(5):
+        if month == 1:
+            month = 12
+            year -= 1
+        else:
+            month -= 1
+
+    # zaciatok obdobia = prvy den vypocitaneho mesiaca
+    date_from = datetime(year, month, 1)
+
+    # koniec obdobia = dnes
+    date_to = today
+
+    return (
+        date_from.strftime("%Y-%m-%d"),
+        date_to.strftime("%Y-%m-%d")
+    )
 def get_sum_amount_per_month(user_id):
 
     month_start, next_month_start = get_current_month_range()
@@ -475,6 +502,208 @@ def get_category_stat_for_current_month(user_id):
         "values" : values
     }
 
+def get_stats_summary_cards(user_id, date_from, date_to):
+
+    # prevedieme datumy na datetime_iso rozsah
+    date_from_iso = date_from + " 00:00:00"
+    date_to_iso = date_to + " 23:59:59"
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    #zobereieme celkovu sume v od do
+    cur.execute("""
+        SELECT COALESCE(SUM(prize), 0) as total_sum
+        FROM receipts
+        WHERE user_id = ?
+        AND datetime_iso >= ?
+        AND datetime_iso <= ?
+    """, (user_id, date_from_iso, date_to_iso))
+
+    row = cur.fetchone()
+    if row and row["total_sum"] is not None:
+        total_sum = round(float(row["total_sum"]), 2)
+    else:
+        total_sum = 0.0
+    
+
+    #vyberieme pocet blockovv
+    cur.execute("""
+        SELECT COUNT(*) as receipt_count
+        FROM receipts
+        WHERE user_id = ?
+        AND datetime_iso >= ?
+        AND datetime_iso <= ?
+    """, (user_id, date_from_iso, date_to_iso))
+
+    row = cur.fetchone()
+    if row:
+        receipt_count = int(row["receipt_count"])
+    else: 
+        receipt_count = 0
+
+    #najkupovanejsia kategoria
+    #podla poctu poloziek v danej kategorii
+
+    cur.execute("""
+        SELECT i.category, COUNT(*) as category_count
+        FROM items i
+        JOIN receipts r ON i.receipt_id = r.id
+        WHERE r.user_id = ?
+        AND r.datetime_iso >= ?
+        AND r.datetime_iso <= ?
+        GROUP BY i.category
+        ORDER BY category_count DESC, i.category ASC
+        LIMIT 1
+    """, (user_id, date_from_iso, date_to_iso))
+
+    row = cur.fetchone()
+    if row and row["category"]:
+        top_category = row["category"]
+    else:
+        top_category = "-"
+
+    # najkupovanejsia polozka podla SUM(amount)
+    cur.execute("""
+        SELECT i.item_name, COALESCE(SUM(i.amount), 0) as total_amount
+        FROM items i
+        JOIN receipts r ON i.receipt_id = r.id
+        WHERE r.user_id = ?
+        AND r.datetime_iso >= ?
+        AND r.datetime_iso <= ?
+        GROUP BY i.item_name
+        ORDER BY total_amount DESC, i.item_name ASC
+        LIMIT 1
+    """, (user_id, date_from_iso, date_to_iso))
+
+    row = cur.fetchone()
+
+    if row and row["item_name"]:
+        top_item = row["item_name"]
+        top_item_amount = round(float(row["total_amount"]), 2)
+    else:
+        top_item = "-"
+        top_item_amount = 0
+
+    con.close()
+
+    return {
+        "total_sum": total_sum,
+        "receipt_count": receipt_count,
+        "top_category": top_category,
+        "top_item": top_item,
+        "top_item_amount": top_item_amount
+    }
+    
+def get_monthly_expenses(user_id, date_from, date_to):
+
+    #dame rozsah
+    date_from_iso = date_from + " 00:00:00"
+    date_to_iso = date_to + " 23:59:59"
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT 
+            strftime('%Y-%m', datetime_iso) as month,
+            COALESCE(SUM(prize), 0) as total
+        FROM receipts
+        WHERE user_id = ?
+        AND datetime_iso >= ?
+        AND datetime_iso <= ?
+        GROUP BY month
+        ORDER BY month ASC
+    """, (user_id, date_from_iso, date_to_iso))
+
+    rows = cur.fetchall()
+    con.close()
+
+    labels = []
+    values = []
+
+    for row in rows:
+        labels.append(row["month"])
+        values.append(round(float(row["total"]), 2))
+
+    return {
+        "labels": labels,
+        "values": values
+    }
+
+def get_category_monthly_expenses(user_id, date_from, date_to):
+
+    #rozsah 
+    date_from_iso = date_from + " 00:00:00"
+    date_to_iso = date_to + " 23:59:59"
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT i.category, COALESCE(SUM(i.prize), 0) as total
+        FROM items i
+        JOIN receipts r ON i.receipt_id = r.id
+        WHERE r.user_id = ?
+        AND r.datetime_iso >= ?
+        AND r.datetime_iso <= ?
+        GROUP BY i.category
+        ORDER BY total DESC
+    """, (user_id, date_from_iso, date_to_iso))
+
+    rows = cur.fetchall()
+    con.close()
+
+    labels = []
+    values = []
+
+    for row in rows:
+        labels.append(row["category"])
+        values.append(round(float(row["total"]), 2))
+
+    return {
+        "labels": labels,
+        "values": values
+    }
+
+def get_shop_monthly_expenses(user_id, date_from, date_to):
+
+    #prevedieme
+    date_from_iso = date_from + " 00:00:00"
+    date_to_iso = date_to + " 23:59:59"
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT r.shop_name, COALESCE(SUM(r.prize), 0) as total
+        FROM receipts r
+        WHERE r.user_id = ?
+        AND r.datetime_iso >= ?
+        AND r.datetime_iso <= ?
+        GROUP BY r.shop_name
+        ORDER BY total DESC
+        LIMIT 6
+    """, (user_id, date_from_iso, date_to_iso))
+
+    rows = cur.fetchall()
+    con.close()
+
+    labels = []
+    values = []
+
+    for row in rows:
+        labels.append(row["shop_name"])
+        values.append(round(float(row["total"]), 2))
+
+    return {
+        "labels": labels,
+        "values": values
+    }
 
 def delete_receipt(receipt_id, user_id):
 
@@ -578,6 +807,91 @@ def get_filtered_receipts(user_id, search, date_from, date_to):
     con.close()
 
     return receipts
+
+def get_user_settings(user_id):
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    #vratime meno, adresu, 2fa heslo, filtre
+    cur.execute("""
+        SELECT username, email_addres, email_2fa_password, email_filters
+        FROM users
+        WHERE id = ?
+    """, (user_id,))
+
+    row = cur.fetchone()
+    con.close()
+
+    if not row:
+        return None
+
+    return {
+        "username": row["username"] if row["username"] else "",
+        "email": row["email_addres"] if row["email_addres"] else "",
+        "email_password": row["email_2fa_password"] if row["email_2fa_password"] else "",
+        "email_filters": row["email_filters"] if row["email_filters"] else ""
+    }
+
+#zmena mena 
+def update_username(user_id, new_username):
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE users
+            SET username = ?
+            WHERE id = ?
+        """, (new_username, user_id))
+
+        con.commit()
+        changed = cur.rowcount
+        con.close()
+
+        return changed
+
+    except sqlite3.IntegrityError:
+        con.close()
+        return 0
+
+#zmena hesla
+def update_user_password(user_id, password_hashed):
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+    cur.execute("""
+        UPDATE users
+        SET password_hashed = ?
+        WHERE id = ?
+    """, (password_hashed, user_id))
+
+    con.commit()
+    changed = cur.rowcount
+    con.close()
+
+    return changed
+
+#zmena nastavenia emailu
+def update_email_settings(user_id, email, email_password, email_filters):
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+    cur.execute("""
+        UPDATE users
+        SET email_addres = ?, email_2fa_password = ?, email_filters = ?
+        WHERE id = ?
+    """, (email, email_password, email_filters, user_id))
+
+    con.commit()
+    changed = cur.rowcount
+    con.close()
+
+    return changed
 #-----------------------------------------------------------------------------------------------
 
 #---------------------------------------------------LOGIN/REGISTRATION SECTION---------------------------

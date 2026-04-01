@@ -1,4 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
+from werkzeug.security import generate_password_hash
+from services import ai_service
+from services import email_service
 import helper, parser, database
 import random
 import os
@@ -6,6 +9,7 @@ import config
 import webbrowser
 import threading
 import time
+import re
 
 
 app = Flask(__name__)
@@ -163,7 +167,7 @@ def categorize_all_items():
     updated_count = 0
 
     for group in groups:
-        categorized_items = parser.categorize_items_ai(group)
+        categorized_items = ai_service.categorize_items_ai(group)
 
         #ak skupinka zlyha tak stopneme a vratime chybu
 
@@ -255,6 +259,7 @@ def receipt_origin(receipt_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
+
     #ziskame user user_id so session a podla nej najdeme folder usera
     user_id = session.get('user_id')
     file_path = helper.get_file_path(receipt_id, user_id)
@@ -266,12 +271,38 @@ def receipt_origin(receipt_id):
     return send_file(file_path)
 
 @app.route('/stats')
-
 def stats():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    return render_template('stats.html', show_menu = True)
+    user_id = session.get('user_id')
+
+    #ziskame datumy z filtrov, ak nie su bude default 6 mesiacov
+    date_from = request.args.get('date_from', '').strip()
+    date_to = request.args.get('date_to', '').strip()
+
+    if not date_from or not date_to:
+        date_from, date_to = helper.get_default_stats_date_range()
+
+    #pre 4 karticky
+    summary_stats = helper.get_stats_summary_cards(user_id, date_from, date_to)
+
+    #velky mesacny graf
+    monthly_chart = helper.get_monthly_expenses(user_id, date_from, date_to)
+
+    #graf kategorii
+    category_chart = helper.get_category_monthly_expenses(user_id, date_from, date_to)
+
+    #graf vydavkov na obchod
+    shop_chart = helper.get_shop_monthly_expenses(user_id, date_from, date_to)
+    return render_template('stats.html', 
+        show_menu = True,
+        date_from = date_from,
+        date_to = date_to,
+        summary_stats = summary_stats,
+        monthly_chart=monthly_chart,
+        category_chart=category_chart,
+        shop_chart = shop_chart)
 
 #default upload nacitanie stranky
 @app.route('/upload', methods=['GET'])
@@ -331,7 +362,7 @@ def upload_pdf():
         #ak sa nepodari, skusime ai
 
         #zavolanie parsera ai
-        parsed_ai = parser.ai_parser_text(pdf_text)
+        parsed_ai = ai_service.ai_parser_text(pdf_text)
 
         if parsed_ai is None:
             os.remove(file_path)
@@ -402,7 +433,7 @@ def upload_img():
 
 
     #zavolanie parsera ai
-    parsed_ai = parser.ai_parser_img(file_path)
+    parsed_ai = ai_service.ai_parser_img(file_path)
 
     if parsed_ai is None:
         os.remove(file_path)
@@ -470,7 +501,130 @@ def upload_manual():
 def settings():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    return render_template('settings.html', show_menu = True)
+
+    user_id = session.get('user_id')
+    settings_data = helper.get_user_settings(user_id)
+
+    return render_template(
+        "settings.html",
+        show_menu=True,
+        settings=settings_data
+    )
+
+@app.route('/settings/update-profile', methods=['POST'])
+def update_profile():
+
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Neprihlásený používateľ"}), 401
+    
+    user_id = session.get('user_id')
+
+    #ziskame meno
+    new_username = request.form.get('username', '').strip()
+
+    #ak nie je zadane meno
+    if not new_username:
+        return jsonify({"success": False, "message": "Používateľské meno nemôže byť prázdne."}), 400
+
+    
+    if len(new_username) < 3:
+        return jsonify({"success": False, "message": "Používateľské meno musí mať aspoň 3 znaky!"}), 400
+    
+    if len(new_username) > 25:
+        return jsonify({"success": False, "message": "Používateľské meno je príliš dlhé (max 25 znakov)!"}), 400
+
+    current_settings = helper.get_user_settings(user_id)
+    current_username = current_settings["username"]
+
+    if new_username != current_username and not helper.is_unique_username(new_username):
+        return jsonify({"success": False, "message": "Používateľské meno už existuje."}), 400
+
+    changed = helper.update_username(user_id, new_username)
+
+    if not changed:
+        return jsonify({"success": False, "message": "Používateľské meno sa nepodarilo zmeniť."}), 400
+
+    session['username'] = new_username
+
+    return jsonify({"success": True, "message": "Používateľské meno bolo aktualizované."})
+
+#zmena hesla
+@app.route('/settings/update-password', methods=['POST'])
+def update_password():
+
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Neprihlásený používateľ"}), 401
+
+    user_id = session.get('user_id')
+    new_password = request.form.get('new_password', '').strip()
+
+    if not new_password:
+        return jsonify({"success": False, "message": "Nové heslo nemôže byť prázdne."}), 400
+
+    if len(new_password) < 5:
+        return jsonify({"success": False, "message": "Heslo je príliš kratke (min 5 znakov)!"}), 400
+
+    new_password_hashed = generate_password_hash(new_password)
+    changed = helper.update_user_password(user_id, new_password_hashed)
+
+    if not changed:
+        return jsonify({"success": False, "message": "Heslo sa nepodarilo zmeniť."}), 400
+
+    return jsonify({"success": True, "message": "Heslo bolo úspešne zmenené."})
+
+#update pre email
+@app.route('/settings/update-email', methods=['POST'])
+def update_email_settings():
+
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Neprihlásený používateľ"}), 401
+
+    user_id = session.get('user_id')
+
+    email_value = request.form.get('email', '').strip()
+
+    #regex na validaciu gmailu
+    gmail_pattern = r'^[a-zA-Z0-9._%+-]+@gmail\.com$'
+
+    if not re.match(gmail_pattern, email_value):
+        return jsonify({
+            "success": False,
+            "message": "Povolené sú iba Gmail adresy (@gmail.com)"
+        }), 400
+
+    email_password = request.form.get('email_password', '').strip()
+    email_filters = request.form.get('email_filters', '').strip()
+
+    changed = helper.update_email_settings(user_id, email_value, email_password, email_filters)
+
+    if not changed:
+        return jsonify({"success": False, "message": "Emailové nastavenia sa nepodarilo uložiť."}), 400
+
+    return jsonify({"success": True, "message": "Emailové nastavenia boli uložené."})
+
+@app.route('/test-email')
+def test_email():
+
+    if 'user_id' not in session:
+        return "Not logged in"
+
+    user_id = session.get('user_id')
+
+    settings = helper.get_user_settings(user_id)
+
+    email_user = settings["email"]
+    email_password = settings["email_password"]
+
+    # filtre z textarea (riadky)
+    filters = settings["email_filters"].splitlines()
+
+    result = email_service.fetch_receipt_emails(
+        email_user,
+        email_password,
+        filters
+    )
+
+    return {"emails": result}
 
 # --------------------------------------------------------------------------------------------------------------
 
@@ -495,3 +649,4 @@ if __name__ == '__main__':
         port=5000,
         debug=False
     )
+
