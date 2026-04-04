@@ -5,6 +5,15 @@ import secrets
 from pathlib import Path
 from dotenv import load_dotenv
 
+load_dotenv()
+
+key = os.getenv("EMAIL_CREDENTIALS_KEY")
+
+if not key:
+    raise Exception("Missing EMAIL_CREDENTIALS_KEY in .env")
+
+EMAIL_CREDENTIALS_KEY = key.encode()
+
 #najdeme priecinok v ktorom sa nachadza 
 BASE_DIR = Path(__file__).resolve().parent
 

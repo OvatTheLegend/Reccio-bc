@@ -276,6 +276,31 @@
     overflow-x: auto;
 }
 
+.receipts-actions {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+
+.import-email-btn {
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.9rem 1.25rem;
+    box-shadow: 0 10px 24px rgba(34, 197, 94, 0.22);
+    white-space: nowrap;
+}
+
+.import-email-btn:hover,
+.import-email-btn:focus {
+    background: linear-gradient(90deg, #1fb455 0%, #15803d 100%);
+    color: white;
+}
+
+
 .detail_table {
     width: 100%;
     border-collapse: collapse;

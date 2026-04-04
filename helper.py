@@ -1,14 +1,133 @@
 import sqlite3, re
+import os
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import config
 import calendar
 import parser
+from cryptography.fernet import Fernet
 
 database = config.DATABASE_PATH
 
+cipher = Fernet(config.EMAIL_CREDENTIALS_KEY)
 
 #---------------------------------------------------DATABASE INSERT SELECT SECTION---------------------------
+
+def encrypt_value(value):
+    if not value:
+        return ""
+
+    return cipher.encrypt(value.encode()).decode()
+
+
+def decrypt_value(value):
+    if not value:
+        return ""
+
+    try:
+        return cipher.decrypt(value.encode()).decode()
+    except Exception:
+        return ""
+
+def get_decrypted_email_password(user_id):
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT email_2fa_password
+        FROM users
+        WHERE id = ?
+    """, (user_id,))
+
+    row = cur.fetchone()
+    con.close()
+
+    if not row or not row["email_2fa_password"]:
+        return ""
+
+    return decrypt_value(row["email_2fa_password"])
+
+def process_pdf_receipt(file_path, user_id):
+
+    try:
+        #extraction of text from pdf, parsing, 
+        pdf_text = parser.extract_from_pdf(file_path)
+
+
+        #naprv vyparsuejeme blocek
+        parsed_receipt = parser.parse_receipt(pdf_text)
+
+        if parsed_receipt:
+            parsed_items = parser.parse_items_universal(parsed_receipt["shop_name"], pdf_text)
+        else:
+            parsed_items = None
+        
+        parse_method = "parser"
+
+
+        #manualny pareser zlyhal
+        if not parsed_receipt or not parsed_items:
+            #ak sa nepodari, skusime ai
+
+            #zavolanie parsera ai
+            parsed_ai = ai_service.ai_parser_text(pdf_text)
+
+            if parsed_ai is None:
+                os.remove(file_path)
+                return {
+                    "success": False,
+                    "error": "parse_failed"
+                }
+
+            parsed_receipt = {
+                "shop_name":  parsed_ai["shop_name"],
+                "date":  parsed_ai["date"],
+                "time": parsed_ai["time"],
+                "prize":  parsed_ai["prize"],
+            }
+
+            parsed_items = parsed_ai["items"]
+            parse_method = "ai"
+
+        #ak vsetko v poriadku ulozime do db
+        receipt_id = save_receipt(parsed_receipt, parsed_items, user_id, parse_method)
+
+        #ak chyba pri ukladani
+        if receipt_id is None:
+            return {
+                "success": False,
+                "error": "duplicate"
+            }
+        
+        extension = file_path.rsplit('.')[-1].lower()
+        user_folder = os.path.dirname(file_path)
+                
+        #rename the file_pre-saved
+        final_filename = f'r_{receipt_id}.{extension}'
+        final_file_path = os.path.join(user_folder,final_filename)
+        os.rename(file_path, final_file_path)
+
+        #ulozime cestu k suboru pre zobrazovanie originalu
+        save_file_path(receipt_id, final_file_path)
+
+        return {
+            "success": True,
+            "receipt_id": receipt_id,
+            "file_path": final_file_path,
+            "parse_method": parse_method
+        }
+
+    except Exception as e:
+        print("PROCESS PDF ERROR:", e)
+        return {
+            "success": False,
+            "error": "exception"
+        }
+    
+
+    
 def save_file_path(receipt_id, file_path):
 
     con = sqlite3.connect(database)
@@ -816,7 +935,7 @@ def get_user_settings(user_id):
 
     #vratime meno, adresu, 2fa heslo, filtre
     cur.execute("""
-        SELECT username, email_addres, email_2fa_password, email_filters
+        SELECT username, email_addres, email_filters, email_scan_limit
         FROM users
         WHERE id = ?
     """, (user_id,))
@@ -830,8 +949,9 @@ def get_user_settings(user_id):
     return {
         "username": row["username"] if row["username"] else "",
         "email": row["email_addres"] if row["email_addres"] else "",
-        "email_password": row["email_2fa_password"] if row["email_2fa_password"] else "",
-        "email_filters": row["email_filters"] if row["email_filters"] else ""
+        "email_password": "",
+        "email_filters": row["email_filters"] if row["email_filters"] else "",
+        "email_scan_limit": row["email_scan_limit"] or 20
     }
 
 #zmena mena 
@@ -876,16 +996,34 @@ def update_user_password(user_id, password_hashed):
     return changed
 
 #zmena nastavenia emailu
-def update_email_settings(user_id, email, email_password, email_filters):
+def update_email_settings(user_id, email, email_password, email_filters, email_scan_limit):
 
     con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
     cur = con.cursor()
+
+    #ak nie je zadane heslo, zoberie sa aktualne ulozene v db
+    if not email_password:
+        cur.execute("""
+            SELECT email_2fa_password
+            FROM users
+            WHERE id = ?
+        """, (user_id,))
+        row = cur.fetchone()
+
+        if row and row["email_2fa_password"]:
+            encrypted_password = row["email_2fa_password"]
+        else:
+            encrypted_password = ""
+
+    else:
+        encrypted_password = encrypt_value(email_password)
 
     cur.execute("""
         UPDATE users
-        SET email_addres = ?, email_2fa_password = ?, email_filters = ?
+        SET email_addres = ?, email_2fa_password = ?, email_filters = ?, email_scan_limit = ?
         WHERE id = ?
-    """, (email, email_password, email_filters, user_id))
+    """, (email, encrypted_password, email_filters, email_scan_limit, user_id))
 
     con.commit()
     changed = cur.rowcount

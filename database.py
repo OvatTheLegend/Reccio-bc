@@ -18,7 +18,8 @@ def init_database():
         password_hashed TEXT NOT NULL,
         email_addres TEXT,
         email_2fa_password TEXT,
-        email_filters TEXT
+        email_filters TEXT,
+        email_scan_limit INTEGER
         )""")
 
 

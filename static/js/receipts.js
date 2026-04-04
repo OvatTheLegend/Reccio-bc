@@ -49,7 +49,7 @@ async function deleteReceipt(receiptId){
                 icon: "error",
                 timer: 1500,      
                 showConfirmButton: false,
-            });
+        });
     }
 }
 
@@ -161,3 +161,92 @@ async function showOrigin(receiptId){
         }
     });
 }   
+
+async function importEmailReceipts() {
+
+    const confirmResult = await Swal.fire({
+        title: "Prehľadať emaily?",
+        text: "Aplikácia vyhľadá PDF bločky podľa filtrov uložených v nastaveniach.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Áno",
+        cancelButtonText: "Zrušiť",
+        confirmButtonColor: "#16a34a",
+        cancelButtonColor: "#aaa"
+    });
+
+    if (!confirmResult.isConfirmed) {
+        return;
+    }
+
+    Swal.fire({
+        title: "Prehľadávam emaily...",
+        text: "Prosím počkajte",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    try {
+        const response = await fetch("/import-email-receipts", {
+            method: "POST"
+        });
+
+        const data = await response.json();
+
+        Swal.close();
+
+        if (!data.success) {
+            Swal.fire({
+                icon: "error",
+                title: "Chyba",
+                text: data.message || "Import emailov sa nepodaril."
+            });
+            return;
+        }
+
+        const results = data.results || [];
+
+        if (results.length === 0) {
+            Swal.fire({
+                icon: "info",
+                title: "Nenašli sa žiadne bločky",
+                text: "Skontrolujte filtre alebo emaily s PDF prílohami."
+            });
+            return;
+        }
+
+        const imported = results.filter(r => r.status === "imported").length;
+        const duplicate = results.filter(r => r.status === "duplicate").length;
+        const failed = results.filter(r => r.status === "failed").length;
+
+        Swal.fire({
+            icon: failed > 0 ? "warning" : "success",
+            title: "Import dokončený",
+            html: `
+                <div style="text-align:left">
+                    ✔ Uložené: <b>${imported}</b><br>
+                    ⚠ Duplicitné: <b>${duplicate}</b><br>
+                    ❌ Neúspešné: <b>${failed}</b>
+                </div>
+            `
+        }).then(() => {
+            if (imported > 0) {
+                location.reload();
+            }
+        });
+
+    } catch (error) {
+        Swal.close();
+        console.error("Chyba:", error);
+
+        Swal.fire({
+            icon: "error",
+            title: "Chyba",
+            text: "Nepodarilo sa spojiť so serverom."
+        });
+    }
+}

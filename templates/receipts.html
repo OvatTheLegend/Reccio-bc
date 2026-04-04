@@ -22,9 +22,15 @@
             </p>
         </div>
 
-        <a class="btn add-receipt-btn" href="{{ url_for('upload') }}">
-            <i class="bi bi-receipt-cutoff me-2"></i>Pridať bloček
-        </a>
+        <div class="receipts-actions">
+            <a href="{{ url_for('upload') }}" class="btn add-receipt-btn">
+                <i class="bi bi-plus-circle me-2"></i>Pridať bloček
+            </a>
+
+            <button type="button" class="btn import-email-btn" onclick="importEmailReceipts()">
+                <i class="bi bi-envelope-paper me-2"></i>Prehľadať emaily
+            </button>
+        </div>
     </div>
 </section>
 

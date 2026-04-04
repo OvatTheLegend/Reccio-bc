@@ -108,78 +108,83 @@ async function upload_pdf(){
     }
 }
 
-async function upload_img(){
+async function upload_img() {
 
     const file = document.getElementById('receipt_file_img');
 
-    //ak nie je vybraty subor -> warning
+    // ak nie je vybraty subor
     if (!file.files[0]) {
         Swal.fire({
-            tittle: "Nie je vybratá žiadna fotka",
+            title: "Nie je vybratá žiadna fotka",
             icon: "warning",
-            text: "najprv vyberte fotku!",
+            text: "Najprv vyberte fotku!"
         });
         return;
     }
 
-    //do formData vlozime prilozeny subor
     const formData = new FormData();
-    formData.append('receipt_file_img', file.files[0])
+    formData.append('receipt_file_img', file.files[0]);
 
-    //controller pre umozenenie zrusenie pouzivatelovi
     const controller = new AbortController();
+    let interval = null;
 
-    // cakanie na nahranie blocku
     Swal.fire({
         title: "Spracovávam fotku...",
-        text: "Prosím počkajte",
+        text: "Prosím počkajte... (5)",
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
             Swal.showLoading();
 
-            //odpocitavanie sekund do umoznenia zrusenia spracovania
             let secondsLeft = 5;
-            const interval = setInterval(() => {
+
+            interval = setInterval(() => {
                 secondsLeft--;
 
-            Swal.update({
-                text: `Prosím počkajte... (${secondsLeft})`,
-            })
+                if (secondsLeft > 0) {
+                    Swal.update({
+                        text: `Prosím počkajte... (${secondsLeft})`
+                    });
+                } else {
+                    clearInterval(interval);
+                    interval = null;
 
-            if (secondsLeft <= 0){
-                clearInterval(interval);
-                Swal.update({
-                    text: "Spracovanie trvá dlhšie...",
-                    showConfirmButton: true,
-                    confirmButtonText: "Zrušiť",
-                    confirmButtonColor: "#dc0d1e",
-                });
-            }
-        }, 1000);
+                    Swal.update({
+                        text: "Spracovanie trvá dlhšie...",
+                        showConfirmButton: true,
+                        confirmButtonText: "Zrušiť čakanie",
+                        confirmButtonColor: "#dc0d1e"
+                    });
+                }
+            }, 1000);
         }
-
     }).then((result) => {
-        if (result.isConfirmed){
+        if (result.isConfirmed) {
             controller.abort();
+
             Swal.fire({
-                icon: 'info',
-                title: 'Zrušené',
-                text: 'Nahrávanie bolo zrušené'
+                icon: "info",
+                title: "Čakanie zrušené",
+                text: "Požiadavka bola zrušená v aplikácii."
             });
         }
     });
 
     try {
-        //posleme cez flask
         const response = await fetch('/upload_img', {
             method: 'POST',
             body: formData,
             signal: controller.signal
         });
 
+        if (interval) {
+            clearInterval(interval);
+            interval = null;
+        }
+
         const data = await response.json();
+        Swal.close();
 
         if (data.success) {
             Swal.fire({
@@ -188,26 +193,34 @@ async function upload_img(){
                 icon: "success",
                 title: data.message,
                 showConfirmButton: false,
-                timer: 2500,
+                timer: 2500
             });
-        }
-
-        else {
+        } else {
             Swal.fire({
                 icon: "error",
                 title: "Chyba",
-                text: data.message,
+                text: data.message
             });
         }
 
     } catch (error) {
-        //ak pouzivatel klikol na zrusiť
-        if (error.name === 'AbortError'){
+        if (interval) {
+            clearInterval(interval);
+            interval = null;
+        }
+
+        if (error.name === 'AbortError') {
             return;
         }
 
         console.error("Chyba:", error);
-    }   
+
+        Swal.fire({
+            icon: "error",
+            title: "Chyba",
+            text: "Nepodarilo sa spojiť so serverom."
+        });
+    }
 }
 
 function toggleCustomShop() {

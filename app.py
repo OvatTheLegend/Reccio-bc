@@ -346,53 +346,18 @@ def upload_pdf():
     file_path = os.path.join(user_folder, temp_filename)
     file.save(file_path)
 
-    #extraction of text from pdf, parsing, 
-    pdf_text = parser.extract_from_pdf(file_path)
+    result = helper.process_pdf_receipt(file_path, user_id)
 
-    #receipt
+    #ak chyba
+    if not result["success"]:
 
-    #naprv vyparsuejeme blocek
-    parsed_receipt = parser.parse_receipt(pdf_text)
-    parsed_items = parser.parse_items_universal(parsed_receipt["shop_name"], pdf_text)
-    parse_method = "parser"
-
-
-    #manualny pareser zlyhal
-    if not parsed_receipt or not parsed_items:
-        #ak sa nepodari, skusime ai
-
-        #zavolanie parsera ai
-        parsed_ai = ai_service.ai_parser_text(pdf_text)
-
-        if parsed_ai is None:
-            os.remove(file_path)
-            return jsonify({ "success": False, "message": "Nepodarilo sa načítať bloček, skontroluje internetové pripojenie"})
-
-        parsed_receipt = {
-            "shop_name":  parsed_ai["shop_name"],
-            "date":  parsed_ai["date"],
-            "time": parsed_ai["time"],
-            "prize":  parsed_ai["prize"],
-        }
-
-        parsed_items = parsed_ai["items"]
-        parse_method = "ai"
-
-    #ak vsetko v poriadku ulozime do db
-    receipt_id = helper.save_receipt(parsed_receipt, parsed_items, user_id, parse_method)
-
-    #ak chyba pri ukladani
-    if receipt_id is None:
+        #odstrainme subor
         os.remove(file_path)
-        return jsonify({"success": False, "message": "Skontrolujte či už bloček nie je pridaný"})
-            
-    #rename the file_pre-saved
-    final_filename = f'r_{receipt_id}.{extension}'
-    final_file_path = os.path.join(user_folder,final_filename)
-    os.rename(file_path, final_file_path)
 
-    #ulozime cestu k suboru pre zobrazovanie originalu
-    helper.save_file_path(receipt_id, final_file_path)
+        if result["error"] == "duplicate":
+            return jsonify({"success": False, "message": "Bloček už existuje"})
+
+        return jsonify({"success": False, "message": "Nepodarilo sa spracovať bloček"})
         
     return jsonify({ "success": True, "message": "Bloček bol úspešne uložený" })
 
@@ -593,39 +558,103 @@ def update_email_settings():
         }), 400
 
     email_password = request.form.get('email_password', '').strip()
-    email_filters = request.form.get('email_filters', '').strip()
+    email_password = email_password.replace(" ", "")
 
-    changed = helper.update_email_settings(user_id, email_value, email_password, email_filters)
+    email_filters = request.form.get('email_filters', '').strip()
+    email_scan_limit = request.form.get('email_scan_limit', '').strip() or '20'
+
+
+    allowed_limits = {"20", "50", "100"}
+
+    if email_scan_limit not in allowed_limits:
+        return jsonify({
+            "success": False,
+            "message": "Neplatný limit emailov."
+        }), 400
+
+    changed = helper.update_email_settings(user_id, email_value, email_password, email_filters, int(email_scan_limit))
 
     if not changed:
         return jsonify({"success": False, "message": "Emailové nastavenia sa nepodarilo uložiť."}), 400
 
     return jsonify({"success": True, "message": "Emailové nastavenia boli uložené."})
 
-@app.route('/test-email')
-def test_email():
+@app.route('/import-email-receipts', methods=['POST'])
+def import_email_receipts():
+
+    #overime pirhlasenie
+
+    if 'user_id' not in session:
+        return jsonify({
+            "success": False,
+            "message": "Neprihlásený používateľ."
+        }), 401
+
+    user_id = session.get('user_id')
+    settings = helper.get_user_settings(user_id)
+
+    email_user = settings["email"]
+    email_password = helper.get_decrypted_email_password(user_id)
+    email_filters = settings["email_filters"]
+    scan_limit = settings["email_scan_limit"]
+
+    filters = [f.strip() for f in email_filters.splitlines() if f.strip()]
+
+    #validacie
+    if not email_user:
+        return jsonify({
+            "success": False,
+            "message": "Najprv si nastavte Gmail adresu v nastaveniach."
+        }), 400
+
+    if not email_password:
+        return jsonify({
+            "success": False,
+            "message": "Najprv si nastavte App Password v nastaveniach."
+        }), 400
+
+    if not filters:
+        return jsonify({
+            "success": False,
+            "message": "Najprv si nastavte filtre emailov alebo obchodov v nastaveniach."
+        }), 400
+
+    result = email_service.import_receipts_from_email(
+        email_user,
+        email_password,
+        filters,
+        user_id,
+        scan_limit
+    )
+
+    return jsonify(result)
+
+
+@app.route('/test-import-email')
+def test_import_email():
 
     if 'user_id' not in session:
         return "Not logged in"
 
     user_id = session.get('user_id')
-
     settings = helper.get_user_settings(user_id)
 
     email_user = settings["email"]
-    email_password = settings["email_password"]
+    email_password = helper.get_decrypted_email_password(user_id)
+    email_filters = settings["email_filters"]
+    scan_limit = settings["email_scan_limit"]
 
-    # filtre z textarea (riadky)
-    filters = settings["email_filters"].splitlines()
+    filters = [f.strip() for f in email_filters.splitlines() if f.strip()]
 
-    result = email_service.fetch_receipt_emails(
+    result = email_service.import_receipts_from_email(
         email_user,
         email_password,
-        filters
+        filters,
+        user_id,
+        scan_limit
     )
 
-    return {"emails": result}
-
+    return jsonify(result)
 # --------------------------------------------------------------------------------------------------------------
 
 #automaticke otvorenie prehliadaca pri spusteni appky

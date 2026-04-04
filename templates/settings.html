@@ -44,10 +44,17 @@
             <input type="text" name="email" id="email" value="{{ settings.email }}" class="form-control">
 
             <label>App password</label>
-            <input type="password" name="email_password" value="{{ settings.email_password }}" class="form-control">
+            <input type="password" id="email_password" name="email_password" value="{{ settings.email_password }}" class="form-control">
+            
+            <label>Počet kontrolovaných emailov</label>
+                <select id="email_scan_limit" name="email_scan_limit" class="form-control">
+                    <option value="20" {% if settings.email_scan_limit == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if settings.email_scan_limit == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if settings.email_scan_limit == 100 %}selected{% endif %}>100</option>
+                </select>
 
             <label>Sledované emaily / obchody</label>
-            <textarea name="email_filters" class="form-control" rows="4">{{ settings.email_filters }}</textarea>
+            <textarea name="email_filters" id="email_filters" class="form-control" rows="4">{{ settings.email_filters }}</textarea>
 
             <button type="submit" class="btn settings-btn">Uložiť email</button>
         </form>
