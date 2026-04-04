@@ -2,6 +2,7 @@
 import os
 import sys
 import secrets
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -67,9 +68,39 @@ def get_or_create_secret_key(secret_key_path: Path) -> str:
 
     return generated_secret_key
 
+def load_app_settings():
+    if not APP_SETTINGS_PATH.exists():
+        default_settings = {"ai_server_url": ""}
+        APP_SETTINGS_PATH.write_text(
+            json.dumps(default_settings, ensure_ascii=False, indent=4),
+            encoding="utf-8"
+        )
+        return default_settings
+
+    try:
+        with open(APP_SETTINGS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        return {
+            "ai_server_url" : data.get("ai_server_url", "").strip()
+        }
+    
+    except Exception as e:
+        print("Chyba pri načítaní app_settings:", e)
+        return{
+            "ai_server_url" : ""
+        }
 
 #priecinok data_dir
 DATA_DIR = get_data_dir()
+
+#cesta k jsonu kde je nazov serveru
+APP_SETTINGS_PATH = get_path("app_settings.json")
+
+APP_SETTINGS = load_app_settings()
+
+#url servera
+AI_SERVER_URL = APP_SETTINGS["ai_server_url"]
 
 #databaza subor
 DATABASE_PATH = DATA_DIR / "receipts.db"
@@ -90,6 +121,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 # rezim appky defaultne production
 FLASK_ENV = os.getenv("FLASK_ENV", "production").lower()
 
+print(f"APP_SETTINGS:  {APP_SETTINGS_PATH}")
+print(f"AI_SERVER_URL: {AI_SERVER_URL}")
 
 # Debug info (zobrazí sa v konzole pri spustení)
 print("=" * 60)

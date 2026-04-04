@@ -34,7 +34,7 @@ async function deleteReceipt(receiptId){
                 position: "top-end",
                 title: "Úspešne odstránené!",
                 icon: "success",
-                timer: 1500,      
+                timer: 3000,      
                 showConfirmButton: false,
             });
         }
@@ -47,7 +47,7 @@ async function deleteReceipt(receiptId){
                 position: "top-end",
                 title: "Bloček sa nepodarilo odstrániť.",
                 icon: "error",
-                timer: 1500,      
+                timer: 3000,      
                 showConfirmButton: false,
         });
     }
@@ -179,21 +179,61 @@ async function importEmailReceipts() {
         return;
     }
 
+    const controller = new AbortController();
+    let interval = null;
+
     Swal.fire({
         title: "Prehľadávam emaily...",
-        text: "Prosím počkajte",
+        text: "Môže to trvať dlhšie, prosím počkajte... (10)",
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
-            Swal.showLoading();
+
+            let secondsLeft = 10;
+
+            interval = setInterval(() => {
+                secondsLeft--;
+
+                if (secondsLeft > 0) {
+                    Swal.update({
+                        text: `Môže to trvať dlhšie, prosím počkajte... (${secondsLeft})`
+                    });
+                } else {
+                    clearInterval(interval);
+                    interval = null;
+
+                    Swal.update({
+                        text: "Prehľadávam...",
+                        showConfirmButton: true,
+                        confirmButtonText: "Zrušiť čakanie",
+                        confirmButtonColor: "#dc0d1e"
+                    });
+                }
+            }, 1000);
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            controller.abort();
+
+            Swal.fire({
+                icon: "info",
+                title: "Čakanie zrušené",
+                text: "Požiadavka bola zrušená v aplikácii."
+            });
         }
     });
 
     try {
         const response = await fetch("/import-email-receipts", {
-            method: "POST"
+            method: "POST",
+            signal: controller.signal
         });
+
+        if (interval) {
+            clearInterval(interval);
+            interval = null;
+        }
 
         const data = await response.json();
 
@@ -240,13 +280,18 @@ async function importEmailReceipts() {
         });
 
     } catch (error) {
+        if (interval) {
+            clearInterval(interval);
+            interval = null;
+        }
+
         Swal.close();
         console.error("Chyba:", error);
 
         Swal.fire({
             icon: "error",
             title: "Chyba",
-            text: "Nepodarilo sa spojiť so serverom."
+            text: "Nepodarilo sa importovať bločky. Skontrolujte internetové pripojenie."
         });
     }
 }

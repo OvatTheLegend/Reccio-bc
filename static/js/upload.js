@@ -52,38 +52,78 @@ async function upload_pdf(){
 
     const file = document.getElementById('receipt_file_pdf');
 
-    //ak nie je vybraty subor -> warning
+    // ak nie je vybraty subor
     if (!file.files[0]) {
         Swal.fire({
-            title: "Nie je vybratý žiadny súbor",
+            title: "Nie je vybratý žiadný pdf súbor",
             icon: "warning",
-            text: "najprv vyber súbor!",
+            text: "Najprv vyberte pdf súbor!"
         });
         return;
     }
 
-    //do formData vlozime prilozeny subor
     const formData = new FormData();
-    formData.append('receipt_file_pdf', file.files[0])
+    formData.append('receipt_file_pdf', file.files[0]);
 
-    // cakanie na nahranie blocku
+    const controller = new AbortController();
+    let interval = null;
+
     Swal.fire({
-        title: "Spracovávam bloček...",
-        text: "Prosím počkajte",
+        title: "AI spracováva pdf súbor...",
+        text: "Môže to trvať dlhšie, prosím počkajte... (10)",
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
-        didOpen: () => Swal.showLoading()
+        didOpen: () => {
+
+            let secondsLeft = 10;
+
+            interval = setInterval(() => {
+                secondsLeft--;
+
+                if (secondsLeft > 0) {
+                    Swal.update({
+                        text: `Môže to trvať dlhšie, prosím počkajte... (${secondsLeft})`
+                    });
+                } else {
+                    clearInterval(interval);
+                    interval = null;
+
+                    Swal.update({
+                        text: "Spracovanie trvá dlhšie...",
+                        showConfirmButton: true,
+                        confirmButtonText: "Zrušiť čakanie",
+                        confirmButtonColor: "#dc0d1e"
+                    });
+                }
+            }, 1000);
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            controller.abort();
+
+            Swal.fire({
+                icon: "info",
+                title: "Čakanie zrušené",
+                text: "Požiadavka bola zrušená v aplikácii."
+            });
+        }
     });
 
     try {
-        //posleme cez flask
         const response = await fetch('/upload_pdf', {
             method: 'POST',
             body: formData,
+            signal: controller.signal
         });
 
+        if (interval) {
+            clearInterval(interval);
+            interval = null;
+        }
+
         const data = await response.json();
+        Swal.close();
 
         if (data.success) {
             Swal.fire({
@@ -92,19 +132,33 @@ async function upload_pdf(){
                 icon: "success",
                 title: data.message,
                 showConfirmButton: false,
-                timer: 2500,
+                timer: 3000
             });
-        }
-
-        else {
+        } else {
             Swal.fire({
                 icon: "error",
                 title: "Chyba",
-                text: data.message,
+                text: data.message
             });
         }
+
     } catch (error) {
+        if (interval) {
+            clearInterval(interval);
+            interval = null;
+        }
+
+        if (error.name === 'AbortError') {
+            return;
+        }
+
         console.error("Chyba:", error);
+
+        Swal.fire({
+            icon: "error",
+            title: "Chyba",
+            text: "Nepodarilo sa spojiť so serverom."
+        });
     }
 }
 
@@ -129,22 +183,21 @@ async function upload_img() {
     let interval = null;
 
     Swal.fire({
-        title: "Spracovávam fotku...",
-        text: "Prosím počkajte... (5)",
+        title: "AI spracováva fotku...",
+        text: "Môže to trvať dlhšie, prosím počkajte... (10)",
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
-            Swal.showLoading();
 
-            let secondsLeft = 5;
+            let secondsLeft = 10;
 
             interval = setInterval(() => {
                 secondsLeft--;
 
                 if (secondsLeft > 0) {
                     Swal.update({
-                        text: `Prosím počkajte... (${secondsLeft})`
+                        text: `Môže to trvať dlhšie, prosím počkajte... (${secondsLeft})`
                     });
                 } else {
                     clearInterval(interval);
@@ -193,7 +246,7 @@ async function upload_img() {
                 icon: "success",
                 title: data.message,
                 showConfirmButton: false,
-                timer: 2500
+                timer: 3000
             });
         } else {
             Swal.fire({

@@ -594,7 +594,7 @@ def get_category_stat_for_current_month(user_id):
     cur = con.cursor()
 
     cur.execute("""
-    SELECT i.category, COALESCE(SUM(i.prize), 0) as total
+    SELECT i.category, COALESCE(SUM(i.prize * i.amount), 0) as total
     FROM items i
     JOIN receipts r ON i.receipt_id = r.id
     WHERE r.user_id = ?
@@ -663,17 +663,17 @@ def get_stats_summary_cards(user_id, date_from, date_to):
         receipt_count = 0
 
     #najkupovanejsia kategoria
-    #podla poctu poloziek v danej kategorii
+    #podla minutych Eur
 
     cur.execute("""
-        SELECT i.category, COUNT(*) as category_count
+        SELECT i.category, SUM(i.prize * amount) as total_spent
         FROM items i
         JOIN receipts r ON i.receipt_id = r.id
         WHERE r.user_id = ?
         AND r.datetime_iso >= ?
         AND r.datetime_iso <= ?
         GROUP BY i.category
-        ORDER BY category_count DESC, i.category ASC
+        ORDER BY total_spent DESC, i.category ASC
         LIMIT 1
     """, (user_id, date_from_iso, date_to_iso))
 
@@ -685,7 +685,7 @@ def get_stats_summary_cards(user_id, date_from, date_to):
 
     # najkupovanejsia polozka podla SUM(amount)
     cur.execute("""
-        SELECT i.item_name, COALESCE(SUM(i.amount), 0) as total_amount
+        SELECT i.item_name, SUM(COALESCE(i.amount,0)) as total_amount
         FROM items i
         JOIN receipts r ON i.receipt_id = r.id
         WHERE r.user_id = ?
@@ -763,7 +763,7 @@ def get_category_monthly_expenses(user_id, date_from, date_to):
     cur = con.cursor()
 
     cur.execute("""
-        SELECT i.category, COALESCE(SUM(i.prize), 0) as total
+        SELECT i.category, COALESCE(SUM(i.prize * i.amount), 0) as total
         FROM items i
         JOIN receipts r ON i.receipt_id = r.id
         WHERE r.user_id = ?

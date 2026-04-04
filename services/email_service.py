@@ -49,6 +49,7 @@ def fetch_receipt_emails(email_user, email_password, filters):
                     #ziskanie hlavicky
                     from_email = msg.get("From")
 
+
                     # filtre, teda ak pouzivatel zadal filtre, skontroluje sa odosielatel, ak nepatri medzi filtre skip
                     if filters:
                         match = False
@@ -150,6 +151,10 @@ def import_receipts_from_email(user_email, user_email_password, filters, user_id
 
                 #filtre pouzivatela
                 match = False
+
+                print("FROM:", from_email)
+                print("SUBJECT", subject)
+                print("FILTERS:", filters)
                     
                 #ak hlavicka alebo predmet obsahuje filter, tak breakneme a ideme dalej, inak iterujeme na dalsi email
                 for f in filters:
@@ -245,7 +250,7 @@ def import_receipts_from_email(user_email, user_email_password, filters, user_id
         print("IMPORT EMAIL CHYBA:", e)
         return {
             "success": False,
-            "message": "Nepodarilo sa spracovať emaily.",
+            "message": "Nepodarilo sa spracovať emaily, skontrolujte internetové pripojenie.",
             "results": []
         }
 

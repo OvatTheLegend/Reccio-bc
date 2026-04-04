@@ -96,6 +96,7 @@ function initCategoryChart() {
 
 async function categorizeItems() {
 
+    
     // potvrdenie
     const confirmResult = await Swal.fire({
         title: "Chcete doplniť kategórie?",
@@ -112,26 +113,47 @@ async function categorizeItems() {
         return;
     }
 
-    // loading popup
+    const controller = new AbortController();
+
     Swal.fire({
-        title: "Spracovávam položky...",
-        text: "Prosím počkajte",
+        title: "AI kategorizuje položky...",
+        text: "Môže to trvať dlhšie, prosím počkajte... (10)",
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
-            Swal.showLoading();
 
-            let seconds = 0;
+            let secondsLeft = 10;
 
-            const interval = setInterval(() => {
-                seconds++;
+            interval = setInterval(() => {
+                secondsLeft--;
 
-                Swal.update({
-                    text: `Prosím počkajte... (${seconds}s)`
-                });
+                if (secondsLeft > 0) {
+                    Swal.update({
+                        text: `Môže to trvať dlhšie, prosím počkajte... (${secondsLeft})`
+                    });
+                } else {
+                    clearInterval(interval);
+                    interval = null;
 
+                    Swal.update({
+                        text: "Spracovanie trvá dlhšie...",
+                        showConfirmButton: true,
+                        confirmButtonText: "Zrušiť čakanie",
+                        confirmButtonColor: "#dc0d1e"
+                    });
+                }
             }, 1000);
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            controller.abort();
+
+            Swal.fire({
+                icon: "info",
+                title: "Čakanie zrušené",
+                text: "Požiadavka bola zrušená v aplikácii."
+            });
         }
     });
 
@@ -139,6 +161,12 @@ async function categorizeItems() {
         const response = await fetch("/categorize_all_items", {
             method: "POST"
         });
+
+        if (interval) {
+            clearInterval(interval);
+            interval = null;
+        }
+
 
         const data = await response.json();
 
@@ -158,11 +186,17 @@ async function categorizeItems() {
             Swal.fire({
                 icon: "error",
                 title: "Chyba",
-                text: data.error || "Kategorizácia zlyhala."
+                text: data.error || "Kategorizácia zlyhala, skontrolujte interetové pripojenie."
             });
         }
 
     } catch (error) {
+
+        if (interval) {
+            clearInterval(interval);
+            interval = null;
+        }
+
         Swal.close();
 
         console.error("Chyba:", error);

@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
 from werkzeug.security import generate_password_hash
-from services import ai_service
-from services import email_service
+from services import ai_service, email_service
 import helper, parser, database
 import random
 import os
@@ -150,7 +149,7 @@ def home():
 def categorize_all_items():
 
     if 'user_id' not in session:
-        return redirect(url_for('login'))
+        return jsonify({"success": False, "message": "Neprihlásený používateľ"}), 401
 
     user_id = session.get('user_id')
 
@@ -162,7 +161,7 @@ def categorize_all_items():
         "updated_count": 0, 
         "message": "Všetky položky majú svoje kategórie." })
 
-    groups = helper.split_into_groups(uncategorized_items, 100)
+    groups = helper.split_into_groups(uncategorized_items, 40)
 
     updated_count = 0
 
