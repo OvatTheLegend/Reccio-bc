@@ -16,7 +16,11 @@ if not key:
 EMAIL_CREDENTIALS_KEY = key.encode()
 
 #najdeme priecinok v ktorom sa nachadza 
-BASE_DIR = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).resolve().parent
+else:
+    BASE_DIR = Path(__file__).resolve().parent
+
 
 #nacitame env subor
 load_dotenv(BASE_DIR / ".env")
@@ -27,10 +31,10 @@ def get_data_dir():
     #zistime ci ide o windows alebo linux
     #windows
     if os.name == 'nt':
-        base_dir = Path(os.environ.get("LOCALAPPDATA", BASE_DIR)) / "ComfyeBlok"
+        base_dir = Path(os.environ.get("LOCALAPPDATA", BASE_DIR)) / "Reccio"
     #linux
     else:
-        base_dir = Path.home() / ".comfyeblok"
+        base_dir = Path.home() / ".reccio"
 
     #ak existuje ok, ak nie vytvori
     base_dir.mkdir(parents=True, exist_ok=True)
@@ -64,7 +68,7 @@ def get_or_create_secret_key(secret_key_path: Path) -> str:
     generated_secret_key = secrets.token_hex(32)
 
     #zapiseme 
-    secret_key_path.write(generated_secret_key, encoding="utf-8")
+    secret_key_path.write_text(generated_secret_key, encoding="utf-8")
 
     return generated_secret_key
 
@@ -95,7 +99,7 @@ def load_app_settings():
 DATA_DIR = get_data_dir()
 
 #cesta k jsonu kde je nazov serveru
-APP_SETTINGS_PATH = get_path("app_settings.json")
+APP_SETTINGS_PATH = BASE_DIR / "app_settings.json"
 
 APP_SETTINGS = load_app_settings()
 
@@ -126,7 +130,7 @@ print(f"AI_SERVER_URL: {AI_SERVER_URL}")
 
 # Debug info (zobrazí sa v konzole pri spustení)
 print("=" * 60)
-print("ComfyeBlok - konfiguracia")
+print("Reccio - konfiguracia")
 print("=" * 60)
 print(f"BASE_DIR:      {BASE_DIR}")
 print(f"DATA_DIR:      {DATA_DIR}")

@@ -316,7 +316,8 @@ def get_all_receipts(user_id):
 
     cur.execute("""SELECT * FROM receipts
     WHERE user_id = ?
-    ORDER BY datetime_iso DESC""", (user_id,))
+    ORDER BY datetime_iso DESC
+    LIMIT 50""", (user_id,))
     receipts = cur.fetchall()
     con.close()
 
@@ -896,6 +897,7 @@ def get_filtered_receipts(user_id, search, date_from, date_to):
         SELECT id, shop_name, date, time, prize
         FROM receipts
         WHERE user_id = ?
+        LIMIT 50
         """
     
     #list kde budeme ukladat parametre a nakoniec executeneme poskaldanu query
