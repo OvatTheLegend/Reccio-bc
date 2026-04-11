@@ -16,7 +16,7 @@ def ai_parser_text(pdf_text):
             json={"text" : pdf_text},
             timeout=90
         )
-        reponse.raise_for_status()
+        response.raise_for_status()
         data = response.json()
 
         if not data.get("success"):
@@ -85,7 +85,7 @@ def categorize_items_ai(items):
 
         response = requests.post(f"{config.AI_SERVER_URL}/categorize-items",
             json={"items": serializable_items},
-            timeout=60
+            timeout=90
         )
 
         response.raise_for_status()

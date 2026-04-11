@@ -5,6 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import config
 import calendar
 import parser
+from services import ai_service
+import pypdfium2 as pdfium
 from cryptography.fernet import Fernet
 
 database = config.DATABASE_PATH
@@ -50,46 +52,66 @@ def get_decrypted_email_password(user_id):
     return decrypt_value(row["email_2fa_password"])
 
 def process_pdf_receipt(file_path, user_id):
+    image_path = None
 
     try:
         #extraction of text from pdf, parsing, 
         pdf_text = parser.extract_from_pdf(file_path)
 
-
-        #naprv vyparsuejeme blocek
-        parsed_receipt = parser.parse_receipt(pdf_text)
-
-        if parsed_receipt:
-            parsed_items = parser.parse_items_universal(parsed_receipt["shop_name"], pdf_text)
-        else:
-            parsed_items = None
-        
-        parse_method = "parser"
-
-
-        #manualny pareser zlyhal
-        if not parsed_receipt or not parsed_items:
-            #ak sa nepodari, skusime ai
-
-            #zavolanie parsera ai
-            parsed_ai = ai_service.ai_parser_text(pdf_text)
+        if not pdf_text or len(pdf_text.strip()) < 30:
+            image_path = convert_pdf_first_page_to_image(file_path)
+            parsed_ai = ai_service.ai_parser_img(image_path)
 
             if parsed_ai is None:
-                os.remove(file_path)
                 return {
                     "success": False,
                     "error": "parse_failed"
                 }
 
             parsed_receipt = {
-                "shop_name":  parsed_ai["shop_name"],
-                "date":  parsed_ai["date"],
+                "shop_name": parsed_ai["shop_name"],
+                "date": parsed_ai["date"],
                 "time": parsed_ai["time"],
-                "prize":  parsed_ai["prize"],
+                "prize": parsed_ai["prize"],
             }
 
             parsed_items = parsed_ai["items"]
-            parse_method = "ai"
+            parse_method = "ai_pdf_image"
+
+        else:
+            parsed_receipt = parser.parse_receipt(pdf_text)
+
+            #naprv vyparsuejeme blocek
+            if parsed_receipt:
+                parsed_items = parser.parse_items_universal(parsed_receipt["shop_name"], pdf_text)
+            else:
+                parsed_items = None
+            
+            parse_method = "parser"
+
+
+            #manualny pareser zlyhal
+            if not parsed_receipt or not parsed_items:
+                #ak sa nepodari, skusime ai
+
+                #zavolanie parsera ai
+                parsed_ai = ai_service.ai_parser_text(pdf_text)
+
+                if parsed_ai is None:
+                    return {
+                        "success": False,
+                        "error": "parse_failed"
+                    }
+
+                parsed_receipt = {
+                    "shop_name":  parsed_ai["shop_name"],
+                    "date":  parsed_ai["date"],
+                    "time": parsed_ai["time"],
+                    "prize":  parsed_ai["prize"],
+                }
+
+                parsed_items = parsed_ai["items"]
+                parse_method = "ai"
 
         #ak vsetko v poriadku ulozime do db
         receipt_id = save_receipt(parsed_receipt, parsed_items, user_id, parse_method)
@@ -101,17 +123,24 @@ def process_pdf_receipt(file_path, user_id):
                 "error": "duplicate"
             }
         
-        extension = file_path.rsplit('.')[-1].lower()
-        user_folder = os.path.dirname(file_path)
-                
-        #rename the file_pre-saved
-        final_filename = f'r_{receipt_id}.{extension}'
-        final_file_path = os.path.join(user_folder,final_filename)
-        os.rename(file_path, final_file_path)
+        save_attachments = get_save_attachments_setting(user_id)
 
-        #ulozime cestu k suboru pre zobrazovanie originalu
-        save_file_path(receipt_id, final_file_path)
+        if save_attachments: 
+            extension = file_path.rsplit('.')[-1].lower()
+            user_folder = os.path.dirname(file_path)
+                    
+            #rename the file_pre-saved
+            final_filename = f'r_{receipt_id}.{extension}'
+            final_file_path = os.path.join(user_folder,final_filename)
+            os.rename(file_path, final_file_path)
 
+            #ulozime cestu k suboru pre zobrazovanie originalu
+            save_file_path(receipt_id, final_file_path)
+
+        else:
+            os.remove(file_path)
+            final_file_path = None
+            
         return {
             "success": True,
             "receipt_id": receipt_id,
@@ -126,6 +155,22 @@ def process_pdf_receipt(file_path, user_id):
             "error": "exception"
         }
     
+    finally:
+        if image_path and os.path.exists(image_path):
+            os.remove(image_path)
+    
+def convert_pdf_first_page_to_image(file_path):
+
+    pdf = pdfium.PdfDocument(file_path)
+    page = pdf[0]
+
+    # scale na img x2
+    pil_image = page.render(scale=2).to_pil()
+
+    image_path = os.path.splitext(file_path)[0] + "_page1.png"
+    pil_image.save(image_path)
+
+    return image_path
 
     
 def save_file_path(receipt_id, file_path):
@@ -937,7 +982,7 @@ def get_user_settings(user_id):
 
     #vratime meno, adresu, 2fa heslo, filtre
     cur.execute("""
-        SELECT username, email_addres, email_filters, email_scan_limit
+        SELECT username, email_addres, email_filters, email_scan_limit, save_attachments
         FROM users
         WHERE id = ?
     """, (user_id,))
@@ -948,12 +993,14 @@ def get_user_settings(user_id):
     if not row:
         return None
 
+
     return {
         "username": row["username"] if row["username"] else "",
         "email": row["email_addres"] if row["email_addres"] else "",
         "email_password": "",
         "email_filters": row["email_filters"] if row["email_filters"] else "",
-        "email_scan_limit": row["email_scan_limit"] or 20
+        "email_scan_limit": row["email_scan_limit"] or 20,
+        "save_attachments": bool(row["save_attachments"]) if row["save_attachments"] is not None else True
     }
 
 #zmena mena 
@@ -998,7 +1045,7 @@ def update_user_password(user_id, password_hashed):
     return changed
 
 #zmena nastavenia emailu
-def update_email_settings(user_id, email, email_password, email_filters, email_scan_limit):
+def update_email_settings(user_id, email, email_password, email_filters, email_scan_limit, save_attachments):
 
     con = sqlite3.connect(database)
     con.row_factory = sqlite3.Row
@@ -1023,15 +1070,35 @@ def update_email_settings(user_id, email, email_password, email_filters, email_s
 
     cur.execute("""
         UPDATE users
-        SET email_addres = ?, email_2fa_password = ?, email_filters = ?, email_scan_limit = ?
+        SET email_addres = ?, email_2fa_password = ?, email_filters = ?, email_scan_limit = ?, save_attachments = ?
         WHERE id = ?
-    """, (email, encrypted_password, email_filters, email_scan_limit, user_id))
+    """, (email, encrypted_password, email_filters, email_scan_limit, save_attachments, user_id))
 
     con.commit()
     changed = cur.rowcount
     con.close()
 
     return changed
+
+def get_save_attachments_setting(user_id):
+
+    con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT save_attachments
+        FROM users
+        WHERE id = ?
+    """, (user_id,))
+
+    row = cur.fetchone()
+    con.close()
+
+    if not row:
+        return True
+
+    return bool(row["save_attachments"])
 #-----------------------------------------------------------------------------------------------
 
 #---------------------------------------------------LOGIN/REGISTRATION SECTION---------------------------

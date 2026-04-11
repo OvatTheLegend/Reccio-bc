@@ -52,3 +52,18 @@
 .settings-list li {
     margin-bottom: 0.35rem;
 }
+
+.custom-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.custom-check .form-check-input {
+    margin-top: 4px;
+}
+
+.custom-check .form-check-label {
+    margin: 0;
+}

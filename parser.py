@@ -43,10 +43,11 @@ def parse_receipt(txt):
 
 #function for getting name of shop of out e-block txt, using regex syntax
 def find_shop_name(txt):
-    #what pattern to seach for? defined here
+
     patterns = {
             "Dr.Max" : r"Dr\.?\s*Max",
             "TERNO" : r"TERNO",
+            "DM": r"\bdm\b|drogerie\s*markt"
     }
 
     #iterate trough our dict shop-regex, if found return name of shop, else unknown
@@ -96,6 +97,7 @@ def parse_items_universal(shopName, txt):
     parsers = {
         "Dr.Max" : parse_items_drmax,
         "TERNO" : parse_items_terno,
+        "DM" : parse_items_dm
     }
 
     parser = parsers.get(shopName)
@@ -258,3 +260,66 @@ def parse_items_terno(txt):
     
     return items
     
+def parse_items_dm(txt):
+    import re
+
+    items = []
+
+    lines = [line.strip() for line in txt.splitlines() if line.strip()]
+
+    start_index = None
+    end_index = None
+
+    # zaciatok poloziek - po hlavicke bločku a datume/cisle bloku
+    for i, line in enumerate(lines):
+        if re.search(r"č\.?\s*bloku", line, re.IGNORECASE):
+            start_index = i + 1
+            break
+
+    if start_index is None:
+        return []
+
+    # koniec poloziek
+    for i, line in enumerate(lines[start_index:], start=start_index):
+        if re.search(r"MEDZISÚČET|MEDZISUCET", line, re.IGNORECASE):
+            end_index = i
+            break
+
+    if end_index is None:
+        return []
+
+    item_lines = lines[start_index:end_index]
+
+    # priklad riadku:
+    # 1 ks * 6,95 6,95 A
+    quantity_pattern = re.compile(
+        r"^(\d+(?:[.,]\d+)?)\s*ks\s*\*\s*(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s+[A-Z]$",
+        re.IGNORECASE
+    )
+
+    i = 0
+    while i < len(item_lines) - 1:
+        item_name = item_lines[i]
+        next_line = item_lines[i + 1]
+
+        match = quantity_pattern.search(next_line)
+
+        if match:
+            amount = match.group(1).replace(",", ".")
+            prize = match.group(3).replace(",", ".")
+
+            # skip zliav/bonusov ak by sa niekedy objavili
+            if re.search(r"zľava|zlava|bonus|body", item_name, re.IGNORECASE):
+                i += 2
+                continue
+
+            items.append({
+                "item_name": item_name,
+                "amount": amount,
+                "prize": prize,
+            })
+            i += 2
+        else:
+            i += 1
+
+    return items

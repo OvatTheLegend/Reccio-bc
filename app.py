@@ -350,8 +350,8 @@ def upload_pdf():
     #ak chyba
     if not result["success"]:
 
-        #odstrainme subor
-        os.remove(file_path)
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
         if result["error"] == "duplicate":
             return jsonify({"success": False, "message": "Bloček už existuje"})
@@ -420,15 +420,20 @@ def upload_img():
     if receipt_id is None:
         os.remove(file_path)
         return jsonify({"success": False, "message": "Skontrolujte či už bloček nie je pridaný"})
-            
-    #rename the file_pre-saved
-    final_filename = f'r_{receipt_id}.{extension}'
-    final_file_path = os.path.join(user_folder,final_filename)
-    os.rename(file_path, final_file_path)
 
-    #ulozime cestu k suboru pre zobrazovanie originalu
-    helper.save_file_path(receipt_id, final_file_path)
-        
+    save_attachments = helper.get_save_attachments_setting(user_id)
+
+    if save_attachments:        
+    #rename the file_pre-saved
+        final_filename = f'r_{receipt_id}.{extension}'
+        final_file_path = os.path.join(user_folder,final_filename)
+        os.rename(file_path, final_file_path)
+
+        #ulozime cestu k suboru pre zobrazovanie originalu
+        helper.save_file_path(receipt_id, final_file_path)
+    else:
+        os.remove(file_path)
+
     return jsonify({ "success": True, "message": "Bloček bol úspešne uložený" })
 
 #manualny upload
@@ -550,7 +555,7 @@ def update_email_settings():
     #regex na validaciu gmailu
     gmail_pattern = r'^[a-zA-Z0-9._%+-]+@gmail\.com$'
 
-    if not re.match(gmail_pattern, email_value):
+    if not re.match(gmail_pattern, email_value) and email_value:
         return jsonify({
             "success": False,
             "message": "Povolené sú iba Gmail adresy (@gmail.com)"
@@ -562,6 +567,11 @@ def update_email_settings():
     email_filters = request.form.get('email_filters', '').strip()
     email_scan_limit = request.form.get('email_scan_limit', '').strip() or '20'
 
+    if request.form.get("save_attachments") == "on":
+        save_attachments = 1
+    else:
+        save_attachments = 0
+
 
     allowed_limits = {"20", "50", "100"}
 
@@ -571,7 +581,7 @@ def update_email_settings():
             "message": "Neplatný limit emailov."
         }), 400
 
-    changed = helper.update_email_settings(user_id, email_value, email_password, email_filters, int(email_scan_limit))
+    changed = helper.update_email_settings(user_id, email_value, email_password, email_filters, int(email_scan_limit), save_attachments)
 
     if not changed:
         return jsonify({"success": False, "message": "Emailové nastavenia sa nepodarilo uložiť."}), 400
@@ -629,31 +639,6 @@ def import_email_receipts():
     return jsonify(result)
 
 
-@app.route('/test-import-email')
-def test_import_email():
-
-    if 'user_id' not in session:
-        return "Not logged in"
-
-    user_id = session.get('user_id')
-    settings = helper.get_user_settings(user_id)
-
-    email_user = settings["email"]
-    email_password = helper.get_decrypted_email_password(user_id)
-    email_filters = settings["email_filters"]
-    scan_limit = settings["email_scan_limit"]
-
-    filters = [f.strip() for f in email_filters.splitlines() if f.strip()]
-
-    result = email_service.import_receipts_from_email(
-        email_user,
-        email_password,
-        filters,
-        user_id,
-        scan_limit
-    )
-
-    return jsonify(result)
 # --------------------------------------------------------------------------------------------------------------
 
 #automaticke otvorenie prehliadaca pri spusteni appky

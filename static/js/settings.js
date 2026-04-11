@@ -60,14 +60,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const email = document.getElementById("email").value.trim();
 
-        // validacia
-        if (!email) {
-            return showError("Email nemôže byť prázdny");
-        }
-
         const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 
-        if (!gmailRegex.test(email)) {
+        if (email & !gmailRegex.test(email)) {
             return showError("Použite Gmail adresu (@gmail.com)");
         }
 
