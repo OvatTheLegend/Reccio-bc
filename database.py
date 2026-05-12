@@ -7,7 +7,7 @@ database = config.DATABASE_PATH
 def init_database():
     #creating connection to database
     con = sqlite3.connect(database)
-
+    con.execute("PRAGMA foreign_keys = ON")
     #for executing sql statements, we need database cursor
     cur = con.cursor()
 
@@ -16,8 +16,8 @@ def init_database():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         password_hashed TEXT NOT NULL,
-        email_addres TEXT,
-        email_2fa_password TEXT,
+        email_address TEXT,
+        email_app_password TEXT,
         email_filters TEXT,
         email_scan_limit INTEGER,
         save_attachments INTEGER DEFAULT 1
@@ -32,25 +32,32 @@ def init_database():
         date TEXT NOT NULL,
         time TEXT NOT NULL,
         datetime_iso TEXT NOT NULL,
-        prize REAL NOT NULL,
+        price REAL NOT NULL,
         parse_method TEXT,
         file_path TEXT,
-        UNIQUE(user_id,shop_name,date,time,prize),
+        UNIQUE(user_id,shop_name,date,time,price),
         FOREIGN KEY (user_id) REFERENCES users(id)
         )""")
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+    )""")
 
     #creating table for items from e-blocks
     cur.execute(""" CREATE TABLE IF NOT EXISTS items(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_name TEXT NOT NULL,
         amount REAL NOT NULL,
-        prize REAL NOT NULL,
-        category TEXT NOT NULL,
+        price REAL NOT NULL,
+        category_id INTEGER,
         receipt_id INTEGER NOT NULL,
-        FOREIGN KEY (receipt_id) REFERENCES receipts(id) ON DELETE CASCADE
+        FOREIGN KEY (receipt_id) REFERENCES receipts(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(id)
         )""")
 
+    
     #commiting changes
     con.commit()
     con.close()

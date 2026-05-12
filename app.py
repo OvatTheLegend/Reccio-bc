@@ -13,14 +13,13 @@ import re
 
 app = Flask(__name__)
 
+app.config['MAX_CONTENT_LENGTH'] = config.MAX_CONTENT_LENGTH
+
 #flask key
 app.config["SECRET_KEY"] = config.SECRET_KEY
 
 #cesty z config suboru
 app.config["UPLOAD_FOLDER"] = str(config.UPLOAD_FOLDER)
-
-#ochrana pri nahrate velkeho suboru 20MB
-app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
 #initialization of databse
 database.init_database()
@@ -28,6 +27,13 @@ database.init_database()
 
 # ------------------------------------------------- ROUTES -------------------------------------------------------------
 #aby ked je pouzivatel prihlaseny, bolo meno zobrazene v menu, nemuselo sa zakazdym posielat
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({
+        "success": False,
+        "message": "Súbor je príliš veľký (max 5 MB)"
+    }), 413
+
 @app.context_processor
 def inject_user():
     return dict(
@@ -168,12 +174,17 @@ def categorize_all_items():
     for group in groups:
         categorized_items = ai_service.categorize_items_ai(group)
 
-        #ak skupinka zlyha tak stopneme a vratime chybu
+        if isinstance(categorized_items, dict) and categorized_items.get("success") is False:
+            return jsonify({
+                "success": False,
+                "message": categorized_items.get("message", "AI kategorizácia zlyhala.")
+            })
 
         if categorized_items is None:
             return jsonify({
-                "success": False, 
-                "message": "Kategorizácia zlyhala, skontrolujte internetové pripojenie" })
+                "success": False,
+                "message": "AI server nie je dostupný alebo nie je správne nakonfigurovaný."
+            })
         
         for item in categorized_items:
             changed = helper.categorize_items(item["id"], item["category"])
@@ -340,14 +351,13 @@ def upload_pdf():
     user_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'user{user_id}')
     os.makedirs(user_folder, exist_ok=True)
 
-    #saving file (FOR FUTURE ADD TIMESTAMP TO PREVENT SAME NAME FILE)
+    
     temp_filename = f'temp_{file.filename}'
     file_path = os.path.join(user_folder, temp_filename)
     file.save(file_path)
 
     result = helper.process_pdf_receipt(file_path, user_id)
 
-    #ak chyba
     if not result["success"]:
 
         if os.path.exists(file_path):
@@ -356,8 +366,11 @@ def upload_pdf():
         if result["error"] == "duplicate":
             return jsonify({"success": False, "message": "Bloček už existuje"})
 
-        return jsonify({"success": False, "message": "Nepodarilo sa spracovať bloček"})
-        
+        return jsonify({
+            "success": False,
+            "message": result.get("message", "Nepodarilo sa spracovať bloček")
+        })
+
     return jsonify({ "success": True, "message": "Bloček bol úspešne uložený" })
 
 #obrazok
@@ -397,17 +410,29 @@ def upload_img():
 
 
     #zavolanie parsera ai
-    parsed_ai = ai_service.ai_parser_img(file_path)
+    ai_result = ai_service.ai_parser_img(file_path)
 
-    if parsed_ai is None:
+    if not ai_result:
         os.remove(file_path)
-        return jsonify({ "success": False, "message": "Nepodarilo sa načítať bloček, skontroluje internetové pripojenie"})
+        return jsonify({
+            "success": False,
+            "message": "Nepodarilo sa načítať bloček."
+        })
+
+    if isinstance(ai_result, dict) and ai_result.get("success") is False:
+        os.remove(file_path)
+        return jsonify({
+            "success": False,
+            "message": ai_result.get("message", "AI spracovanie zlyhalo.")
+        })
+
+    parsed_ai = ai_result["data"]
 
     parsed_receipt = {
         "shop_name":  parsed_ai["shop_name"],
         "date":  parsed_ai["date"],
         "time": parsed_ai["time"],
-        "prize":  parsed_ai["prize"],
+        "price":  parsed_ai["price"],
     }
 
     parsed_items = parsed_ai["items"]
@@ -451,7 +476,7 @@ def upload_manual():
         "shop_name": data["shop_name"],
         "date": data["date"],
         "time": data["time"],
-        "prize": data["prize"],
+        "price": data["price"],
     }
 
     #teraz itemy

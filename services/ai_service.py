@@ -8,7 +8,11 @@ def ai_parser_text(pdf_text):
     print("AI SERVICE CALLED")
     #ak nie je server url
     if not config.AI_SERVER_URL:
-        return None
+        return {
+            "success": False,
+            "error": "ai_config",
+            "message": "AI server nie je nastavený."
+        }
 
     try:
         response = requests.post(
@@ -20,20 +24,35 @@ def ai_parser_text(pdf_text):
         data = response.json()
 
         if not data.get("success"):
-            return None
+            return {
+                "success": False,
+                "error": data.get("error", "ai_error"),
+                "message": data.get("message", "AI spracovanie zlyhalo.")
+            }
 
-        return data.get("data")
+        return {
+            "success": True,
+            "data": data.get("data")
+        }
     
     except Exception as e:
         print(f"AI server chyba (parse): {e}")
-        return None
+        return {
+            "success": False,
+            "error": "ai_unavailable",
+            "message": "AI server nie je dostupný alebo nie je správne nakonfigurovaný."
+        }
 
 def ai_parser_img(file_path):
     
     
     #ak nie je url
     if not config.AI_SERVER_URL:
-        return None
+        return {
+            "success": False,
+            "error": "ai_config",
+            "message": "AI server nie je nastavený."
+        }
 
     try:
         # nacitanie obrazka
@@ -59,20 +78,35 @@ def ai_parser_img(file_path):
         data = response.json()
 
         if not data.get("success"):
-            return None
+            return {
+                "success": False,
+                "error": data.get("error", "ai_error"),
+                "message": data.get("message", "AI spracovanie zlyhalo.")
+            }
 
-        return data.get("data")
+        return {
+            "success": True,
+            "data": data.get("data")
+        }
 
     except Exception as e:
         print(f"AI server chyba (image parse): {e}")
-        return None
+        return {
+            "success": False,
+            "error": "ai_unavailable",
+            "message": "AI server nie je dostupný alebo nie je správne nakonfigurovaný."
+        }
 
 #funkcia na kategorizaciu poloziek
 def categorize_items_ai(items):
 
     #ak nie je nastaveny server
     if not config.AI_SERVER_URL:
-        return None
+        return {
+            "success": False,
+            "error": "ai_config",
+            "message": "AI server nie je nastavený."
+        }
 
     try:
         serializable_items = []
@@ -92,10 +126,18 @@ def categorize_items_ai(items):
         data = response.json()
 
         if not data.get("success"):
-            return None
+            return {
+                "success": False,
+                "error": data.get("error", "ai_error"),
+                "message": data.get("message", "AI spracovanie zlyhalo.")
+            }
 
         return data.get("items", [])
 
     except Exception as e:
         print(f"AI server chyba (categorize): {e}")
-        return None
+        return {
+            "success": False,
+            "error": "ai_unavailable",
+            "message": "AI server nie je dostupný alebo nie je správne nakonfigurovaný."
+        }

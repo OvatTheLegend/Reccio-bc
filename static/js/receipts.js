@@ -92,7 +92,7 @@ async function showDetails(receiptId){
                 <td>${item.item_name}</td>
                 <td>${item.amount}</td>
                 <td>${item.category}</td>
-                <td>${item.prize}€</td>
+                <td>${item.price}€</td>
             </tr>
         `;
     });

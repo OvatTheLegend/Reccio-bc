@@ -100,7 +100,7 @@ async function categorizeItems() {
     // potvrdenie
     const confirmResult = await Swal.fire({
         title: "Chcete doplniť kategórie?",
-        text: "Spracujú sa všetky nezaradené položky.",
+        text: "Spracujú sa všetky Nezaradené položky.",
         icon: "question",
         showCancelButton: true,
         confirmButtonText: "Áno",
@@ -186,7 +186,7 @@ async function categorizeItems() {
             Swal.fire({
                 icon: "error",
                 title: "Chyba",
-                text: data.error || "Kategorizácia zlyhala, skontrolujte interetové pripojenie."
+                text: data.message || "Kategorizácia zlyhala."
             });
         }
 

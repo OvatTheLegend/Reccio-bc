@@ -95,6 +95,8 @@ def load_app_settings():
             "ai_server_url" : ""
         }
 
+MAX_CONTENT_LENGTH = 5 * 1024 * 1024
+
 #priecinok data_dir
 DATA_DIR = get_data_dir()
 

@@ -1,5 +1,3 @@
-/* funckia na prepianie medzi manual a pdf formularom*/
-
 function switchOption(option){
 
     const pdf = document.getElementById('pdf-option');
@@ -61,6 +59,8 @@ async function upload_pdf(){
         });
         return;
     }
+
+    if (!validateFileSize(file.files[0])) return;
 
     const formData = new FormData();
     formData.append('receipt_file_pdf', file.files[0]);
@@ -176,6 +176,8 @@ async function upload_img() {
         return;
     }
 
+    if (!validateFileSize(file)) return;
+    
     const formData = new FormData();
     formData.append('receipt_file_img', file.files[0]);
 
@@ -305,7 +307,7 @@ function addItem(){
         
         <input type="text" placeholder="Názov položky" class="item_name">
         <input type="number" placeholder="Množstvo" class="item_amount" step="0.01" min="0">
-        <input type="number" placeholder="Cena (€)" class="item_prize" step="0.01" min="0">
+        <input type="number" placeholder="Cena (€)" class="item_price" step="0.01" min="0">
         <button type="button" onclick="removeItem(${itemCount})">✕</button>     
 
     `;
@@ -326,7 +328,7 @@ async function uploadManual(){
     const shop = shopSelect === 'ine' ? shopCustom : shopSelect;
     const date = document.getElementById('manual_date').value.trim();
     const time = document.getElementById('manual_time').value.trim();
-    const prize = document.getElementById('manual_prize').value;
+    const price = document.getElementById('manual_price').value;
 
     //nasledne ich zvalidujeme
 
@@ -365,7 +367,7 @@ async function uploadManual(){
     }
 
     //aby nebola nulova cena
-    if (!prize || parseFloat(prize) <= 0) {
+    if (!price || parseFloat(price) <= 0) {
 
         Swal.fire({ icon: 'warning', title: 'Suma musí byť kladná' }); 
 
@@ -387,11 +389,11 @@ async function uploadManual(){
         //najdeme polozky
         const name = div.querySelector('.item_name').value.trim();
         const amount = div.querySelector('.item_amount').value;
-        const itemPrize = div.querySelector('.item_prize').value;
+        const itemprice = div.querySelector('.item_price').value;
 
         //zvalidujeme ich
 
-        if (!name || !amount || !itemPrize) {
+        if (!name || !amount || !itemprice) {
             Swal.fire({ icon: 'warning', title: 'Vypľnte všetky polia položky!' }); return;
         }
 
@@ -399,7 +401,7 @@ async function uploadManual(){
         items.push({
             item_name: name,
             amount: parseFloat(amount),
-            prize: parseFloat(itemPrize),
+            price: parseFloat(itemprice),
         });
     }
 
@@ -412,7 +414,7 @@ async function uploadManual(){
                 shop_name: shop,
                 date: date,
                 time: time,
-                prize: parseFloat(prize),
+                price: parseFloat(price),
                 items: items,
 
             })
@@ -446,4 +448,19 @@ async function uploadManual(){
         console.error("Chyba:", error);
     }
 
+}
+
+function validateFileSize(file) {
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+    if (file.size > MAX_FILE_SIZE) {
+        Swal.fire({
+            title: "Súbor je príliš veľký",
+            icon: "warning",
+            text: "Maximálna veľkosť je 5 MB."
+        });
+        return false;
+    }
+
+    return true;
 }

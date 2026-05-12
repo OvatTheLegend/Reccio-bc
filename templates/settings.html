@@ -45,7 +45,7 @@
             <input type="text" name="email" id="email" value="{{ settings.email }}" class="form-control">
 
             <label>App password</label>
-            <input type="password" id="email_password" name="email_password" value="{{ settings.email_password }}" class="form-control">
+            <input type="password" id="email_password" name="email_password" placeholder="{{ settings.email_password }}" class="form-control">
             
             <label>Počet kontrolovaných emailov</label>
                 <select id="email_scan_limit" name="email_scan_limit" class="form-control">
@@ -66,8 +66,6 @@
                 Ak je táto možnosť zapnutá, aplikácia bude ukladať nahrané PDF a obrázky na disk, aby bolo možné neskôr zobraziť originálny doklad.
                 Pri vypnutí tejto možnosti sa budú ukladať iba spracované údaje a zobrazenie originálu nebude dostupné.
             </p>
-
-            <p>DEBUG save_attachments: {{ settings.save_attachments }}</p>
 
             <label>Sledované emaily / obchody</label>
             <textarea name="email_filters" id="email_filters" class="form-control" rows="4">{{ settings.email_filters }}</textarea>

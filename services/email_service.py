@@ -4,75 +4,9 @@ import uuid
 from helper import process_pdf_receipt
 from email.header import decode_header
 import os
+import config
 
-def fetch_receipt_emails(email_user, email_password, filters):
-
-    try:
-        # pripojenie pre gmail
-        mail = imaplib.IMAP4_SSL("imap.gmail.com")
-
-        #login 
-        mail.login(email_user, email_password)
-
-        #inbox
-        mail.select("inbox")
-
-        #vyhladavanie emailov v inboxe
-        status, messages = mail.search(None, "ALL")
-
-        #splitneme samostatne
-        email_ids = messages[0].split()
-
-        #ukladanie emailov po filty
-        results = []
-        
-        for eid in email_ids[-20:]: #poslednych 2 emailov
-
-            #nacitanie celeho obsahu spravy 
-            status, msg_data = mail.fetch(eid, "(RFC822)") 
-            
-            #msg_data moze obsahovat viacero casti
-            for response_part in msg_data: 
-
-                #ak sprava ma nejaky obsah
-                if isinstance(response_part, tuple):
-
-                    #vytvorenie email objectu (subject | from | attachments | body)
-                    msg = email.message_from_bytes(response_part[1])
-
-                    subject, encoding = decode_header(msg["Subject"])[0]
-
-                    #convert na obycajny text ak je v bytes
-                    if isinstance(subject, bytes):
-                        subject = subject.decode(encoding if encoding else "utf-8")
-
-                    #ziskanie hlavicky
-                    from_email = msg.get("From")
-
-
-                    # filtre, teda ak pouzivatel zadal filtre, skontroluje sa odosielatel, ak nepatri medzi filtre skip
-                    if filters:
-                        match = False
-                        for f in filters:
-                            if f.lower() in str(from_email).lower() or f.lower() in subject.lower():
-                                match = True
-                                break
-                        if not match:
-                            continue
-                    
-                    #ulozime odosielatela a predmet
-                    results.append({
-                        "subject": subject,
-                        "from": from_email
-                    })
-
-        #logout po ukonceni
-        mail.logout()
-        return results
-
-    except Exception as e:
-        print("Email chyba:", e)
-        return None
+MAX_ATTACHMENT_SIZE = config.MAX_CONTENT_LENGTH
 
 def import_receipts_from_email(user_email, user_email_password, filters, user_id, scan_limit):
     
@@ -151,10 +85,6 @@ def import_receipts_from_email(user_email, user_email_password, filters, user_id
 
                 #filtre pouzivatela
                 match = False
-
-                print("FROM:", from_email)
-                print("SUBJECT", subject)
-                print("FILTERS:", filters)
                     
                 #ak hlavicka alebo predmet obsahuje filter, tak breakneme a ideme dalej, inak iterujeme na dalsi email
                 for f in filters:
@@ -162,8 +92,8 @@ def import_receipts_from_email(user_email, user_email_password, filters, user_id
                         match = True
                         break
 
-                    if not match:
-                        continue
+                if not match:
+                    continue
                     
                 #prejdeme vsetky casty konkretneho emailu
                 for part in msg.walk():
@@ -190,6 +120,22 @@ def import_receipts_from_email(user_email, user_email_password, filters, user_id
                     if not filename.lower().endswith(".pdf"):
                         continue
                     
+                    attachment_data = part.get_payload(decode=True)
+
+                    if not attachment_data:
+                        results.append({
+                            "file": filename,
+                            "status": "failed"
+                        })
+                        continue
+
+                    if len(attachment_data) > MAX_ATTACHMENT_SIZE:
+                        results.append({
+                            "file": filename,
+                            "status": "failed"
+                        })
+                        continue
+
                     #vytvorime temporary path, ak sa nepodari parser, ani AI, tak zmazeme
                     temp_name = f"temp_{uuid.uuid4()}.pdf"
                     temp_path = os.path.join(user_folder, temp_name)
@@ -198,7 +144,6 @@ def import_receipts_from_email(user_email, user_email_password, filters, user_id
                     with open(temp_path, "wb") as f:
                         f.write(part.get_payload(decode=True))
 
-                    print("TEMP SAVED:", temp_path)
 
                     #zavolame funkciu na parser
                     process_result = process_pdf_receipt(temp_path, user_id)
@@ -247,7 +192,7 @@ def import_receipts_from_email(user_email, user_email_password, filters, user_id
         }
 
     except Exception as e:
-        print("IMPORT EMAIL CHYBA:", e)
+
         return {
             "success": False,
             "message": "Nepodarilo sa spracovať emaily, skontrolujte internetové pripojenie.",

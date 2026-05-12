@@ -38,7 +38,7 @@ def get_decrypted_email_password(user_id):
     cur = con.cursor()
 
     cur.execute("""
-        SELECT email_2fa_password
+        SELECT email_app_password
         FROM users
         WHERE id = ?
     """, (user_id,))
@@ -46,10 +46,10 @@ def get_decrypted_email_password(user_id):
     row = cur.fetchone()
     con.close()
 
-    if not row or not row["email_2fa_password"]:
+    if not row or not row["email_app_password"]:
         return ""
 
-    return decrypt_value(row["email_2fa_password"])
+    return decrypt_value(row["email_app_password"])
 
 def process_pdf_receipt(file_path, user_id):
     image_path = None
@@ -60,19 +60,28 @@ def process_pdf_receipt(file_path, user_id):
 
         if not pdf_text or len(pdf_text.strip()) < 30:
             image_path = convert_pdf_first_page_to_image(file_path)
-            parsed_ai = ai_service.ai_parser_img(image_path)
+            ai_result = ai_service.ai_parser_img(image_path)
 
-            if parsed_ai is None:
+            if not ai_result:
                 return {
                     "success": False,
                     "error": "parse_failed"
                 }
 
+            if isinstance(ai_result, dict) and ai_result.get("success") is False:
+                return {
+                    "success": False,
+                    "error": ai_result.get("error", "ai_error"),
+                    "message": ai_result.get("message", "AI spracovanie zlyhalo.")
+                }
+
+            parsed_ai = ai_result["data"]
+
             parsed_receipt = {
-                "shop_name": parsed_ai["shop_name"],
-                "date": parsed_ai["date"],
-                "time": parsed_ai["time"],
-                "prize": parsed_ai["prize"],
+            "shop_name": parsed_ai["shop_name"],
+            "date": parsed_ai["date"],
+            "time": parsed_ai["time"],
+            "price": parsed_ai["price"],
             }
 
             parsed_items = parsed_ai["items"]
@@ -95,19 +104,28 @@ def process_pdf_receipt(file_path, user_id):
                 #ak sa nepodari, skusime ai
 
                 #zavolanie parsera ai
-                parsed_ai = ai_service.ai_parser_text(pdf_text)
+                ai_result = ai_service.ai_parser_text(pdf_text)
 
-                if parsed_ai is None:
+                if not ai_result:
                     return {
                         "success": False,
                         "error": "parse_failed"
                     }
 
+                if isinstance(ai_result, dict) and ai_result.get("success") is False:
+                    return {
+                        "success": False,
+                        "error": ai_result.get("error", "ai_error"),
+                        "message": ai_result.get("message", "AI spracovanie zlyhalo.")
+                    }
+
+                parsed_ai = ai_result["data"]
+
                 parsed_receipt = {
                     "shop_name":  parsed_ai["shop_name"],
                     "date":  parsed_ai["date"],
                     "time": parsed_ai["time"],
-                    "prize":  parsed_ai["prize"],
+                    "price":  parsed_ai["price"],
                 }
 
                 parsed_items = parsed_ai["items"]
@@ -149,7 +167,6 @@ def process_pdf_receipt(file_path, user_id):
         }
 
     except Exception as e:
-        print("PROCESS PDF ERROR:", e)
         return {
             "success": False,
             "error": "exception"
@@ -215,11 +232,11 @@ def save_receipt(parsed_receipt, parsed_items, user_id, parse_method):
         #najrpv blocek
         cur.execute(
         """
-        INSERT INTO receipts(shop_name, date, time, datetime_iso, prize, user_id, parse_method)
+        INSERT INTO receipts(shop_name, date, time, datetime_iso, price, user_id, parse_method)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """, 
         (parsed_receipt["shop_name"], parsed_receipt["date"], parsed_receipt["time"],
-          datetime_iso, parsed_receipt["prize"], user_id, parse_method)
+          datetime_iso, parsed_receipt["price"], user_id, parse_method)
         )
 
         #zoberieme pridany blocek
@@ -228,20 +245,23 @@ def save_receipt(parsed_receipt, parsed_items, user_id, parse_method):
         #teraz itemy
         for item in parsed_items:
 
-            #spracovanie kategorie
-            category = item["category"] if parse_method == "ai" else "nezaradené"
+            if parse_method == "ai":
+                category_name = item.get("category")
+                category_id = get_or_create_category_id_with_cursor(cur, category_name)
+            else:
+                category_id = get_category_for_item(item["item_name"], user_id)
 
             cur.execute(
             """
-            INSERT INTO items(item_name, amount, prize, category, receipt_id)
+            INSERT INTO items(item_name, amount, price, category_id, receipt_id)
             VALUES (?, ?, ?, ?, ?)
             """, 
-            (item["item_name"], item["amount"], item["prize"], category, receipt_id))
+            (item["item_name"], item["amount"], item["price"], category_id, receipt_id))
 
         con.commit()
         return receipt_id
 
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError as e:
         con.rollback()
         return None
 
@@ -270,27 +290,71 @@ def get_file_path(receipt_id, user_id):
     else:
         return None
 
+def get_or_create_category_id(category_name):
+    if not category_name:
+        return None
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+    cur.execute("""
+        INSERT OR IGNORE INTO categories(name)
+        VALUES (?)
+    """, (category_name,))
+
+    cur.execute("""
+        SELECT id FROM categories
+        WHERE name = ?
+    """, (category_name,))
+
+    row = cur.fetchone()
+    con.commit()
+    con.close()
+
+    if row:
+        return row[0]
+
+    return None
+
+def get_or_create_category_id_with_cursor(cur, category_name):
+    if not category_name:
+        return None
+
+    cur.execute("""
+        INSERT OR IGNORE INTO categories(name)
+        VALUES (?)
+    """, (category_name,))
+
+    cur.execute("""
+        SELECT id FROM categories
+        WHERE name = ?
+    """, (category_name,))
+
+    row = cur.fetchone()
+
+    if row:
+        return row[0]
+
+    return None
+
 #pocet nekategorizovanych poloziek
 def get_uncategorized_count(user_id):
 
-    #pripojenie k databze
     con = sqlite3.connect(database)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
 
-    # spocitame nezaradene pre daneho usera
     cur.execute("""
         SELECT COUNT(*) as total
         FROM items i
         JOIN receipts r ON i.receipt_id = r.id
         WHERE r.user_id = ?
-        AND LOWER(i.category) = 'nezaradené'
+        AND i.category_id IS NULL
     """, (user_id,))
 
     row = cur.fetchone()
     con.close()
 
-    #vratime
     if row:
         return int(row["total"])
 
@@ -303,40 +367,73 @@ def get_uncategorized_items(user_id):
     con.row_factory = sqlite3.Row
     cur = con.cursor()
 
-    # vsetky nezaradnee polozky blkockov
     cur.execute("""
         SELECT i.id, i.item_name
         FROM items i
         JOIN receipts r ON i.receipt_id = r.id
         WHERE r.user_id = ?
-        AND LOWER(i.category) = 'nezaradené'
+        AND i.category_id IS NULL
         ORDER BY i.id ASC
     """, (user_id,))
 
     items = cur.fetchall()
     con.close()
 
-    #vsetky vratime ako dict like object
     return items
 
 #zaradenie poloziek na konkretne kategorie
-def categorize_items(item_id, category):
+def categorize_items(item_id, category_name):
 
     con = sqlite3.connect(database)
     cur = con.cursor()
 
-    #zapisanie kategorie
+    cur.execute("""
+        INSERT OR IGNORE INTO categories(name)
+        VALUES (?)
+    """, (category_name,))
+
+    cur.execute("""
+        SELECT id FROM categories
+        WHERE name = ?
+    """, (category_name,))
+
+    row = cur.fetchone()
+    category_id = row[0] if row else None
+
     cur.execute("""
         UPDATE items
-        SET category = ?
+        SET category_id = ?
         WHERE id = ?
-    """, (category, item_id))
+    """, (category_id, item_id))
 
     con.commit()
     changed = cur.rowcount
     con.close()
 
     return changed
+
+def get_category_for_item(item_name, user_id):
+
+    con = sqlite3.connect(database)
+    cur = con.cursor()
+
+    cur.execute("""
+        SELECT i.category_id
+        FROM items i
+        JOIN receipts r ON i.receipt_id = r.id
+        WHERE i.item_name = ?
+        AND r.user_id = ?
+        AND i.category_id IS NOT NULL
+        LIMIT 1
+    """, (item_name, user_id))
+
+    result = cur.fetchone()
+    con.close()
+
+    if result:
+        return result[0]  
+
+    return None
 
 #aby sme ai neposielali vela udajov naraz, rozdelime velke hodnoty na skupiny
 def split_into_groups(items, group_size=50):
@@ -398,7 +495,8 @@ def get_top_5_expensive(user_id):
 
     cur.execute("""SELECT * FROM receipts
     WHERE user_id = ?
-    ORDER BY prize DESC LIMIT 5""", (user_id,))
+    ORDER BY CAST(REPLACE(price, ',', '.') AS REAL) DESC
+    LIMIT 5""", (user_id,))
     receipts = cur.fetchall()
     con.close()
 
@@ -477,7 +575,7 @@ def get_sum_amount_per_month(user_id):
     cur = con.cursor()
 
     cur.execute("""
-        SELECT COALESCE(SUM(prize), 0) AS total_sum
+        SELECT COALESCE(SUM(price), 0) AS total_sum
         FROM receipts
         WHERE user_id = ?
         AND datetime_iso >= ?
@@ -597,7 +695,7 @@ def get_daily_expenses_for_current_month(user_id):
     cur = con.cursor()
 
     cur.execute("""
-    SELECT CAST(substr(datetime_iso,9,2) AS INTEGER) as day, SUM(prize) as total
+    SELECT CAST(substr(datetime_iso,9,2) AS INTEGER) as day, SUM(price) as total
     FROM receipts
     WHERE user_id = ?
     AND datetime_iso >= ?
@@ -640,31 +738,31 @@ def get_category_stat_for_current_month(user_id):
     cur = con.cursor()
 
     cur.execute("""
-    SELECT i.category, COALESCE(SUM(i.prize * i.amount), 0) as total
-    FROM items i
-    JOIN receipts r ON i.receipt_id = r.id
-    WHERE r.user_id = ?
-    AND r.datetime_iso >= ?
-    AND r.datetime_iso <= ?
-    GROUP BY i.category
-    ORDER BY total DESC
-    
+        SELECT COALESCE(c.name, 'Nezaradené') as category,
+               COALESCE(SUM(i.price), 0) as total
+        FROM items i
+        JOIN receipts r ON i.receipt_id = r.id
+        LEFT JOIN categories c ON i.category_id = c.id
+        WHERE r.user_id = ?
+        AND r.datetime_iso >= ?
+        AND r.datetime_iso < ?
+        GROUP BY COALESCE(c.name, 'Nezaradené')
+        ORDER BY total DESC
     """, (user_id, month_start, next_month_start))
 
     rows = cur.fetchall()
     con.close()
     
-    #pripravime pre graf
     values = []
     labels = []
 
     for row in rows:
         labels.append(row["category"])
-        values.append(round(float(row["total"]),2))
+        values.append(round(float(row["total"]), 2))
 
     return {
-        "labels" : labels,
-        "values" : values
+        "labels": labels,
+        "values": values
     }
 
 def get_stats_summary_cards(user_id, date_from, date_to):
@@ -679,7 +777,7 @@ def get_stats_summary_cards(user_id, date_from, date_to):
 
     #zobereieme celkovu sume v od do
     cur.execute("""
-        SELECT COALESCE(SUM(prize), 0) as total_sum
+        SELECT COALESCE(SUM(price), 0) as total_sum
         FROM receipts
         WHERE user_id = ?
         AND datetime_iso >= ?
@@ -712,14 +810,16 @@ def get_stats_summary_cards(user_id, date_from, date_to):
     #podla minutych Eur
 
     cur.execute("""
-        SELECT i.category, SUM(i.prize * amount) as total_spent
+        SELECT COALESCE(c.name, 'Nezaradené') as category,
+            SUM(i.price) as total_spent
         FROM items i
         JOIN receipts r ON i.receipt_id = r.id
+        LEFT JOIN categories c ON i.category_id = c.id
         WHERE r.user_id = ?
         AND r.datetime_iso >= ?
         AND r.datetime_iso <= ?
-        GROUP BY i.category
-        ORDER BY total_spent DESC, i.category ASC
+        GROUP BY COALESCE(c.name, 'Nezaradené')
+        ORDER BY total_spent DESC, category ASC
         LIMIT 1
     """, (user_id, date_from_iso, date_to_iso))
 
@@ -774,7 +874,7 @@ def get_monthly_expenses(user_id, date_from, date_to):
     cur.execute("""
         SELECT 
             strftime('%Y-%m', datetime_iso) as month,
-            COALESCE(SUM(prize), 0) as total
+            COALESCE(SUM(price), 0) as total
         FROM receipts
         WHERE user_id = ?
         AND datetime_iso >= ?
@@ -800,7 +900,6 @@ def get_monthly_expenses(user_id, date_from, date_to):
 
 def get_category_monthly_expenses(user_id, date_from, date_to):
 
-    #rozsah 
     date_from_iso = date_from + " 00:00:00"
     date_to_iso = date_to + " 23:59:59"
 
@@ -809,13 +908,15 @@ def get_category_monthly_expenses(user_id, date_from, date_to):
     cur = con.cursor()
 
     cur.execute("""
-        SELECT i.category, COALESCE(SUM(i.prize * i.amount), 0) as total
+        SELECT COALESCE(c.name, 'Nezaradené') as category,
+               COALESCE(SUM(i.price), 0) as total
         FROM items i
         JOIN receipts r ON i.receipt_id = r.id
+        LEFT JOIN categories c ON i.category_id = c.id
         WHERE r.user_id = ?
         AND r.datetime_iso >= ?
         AND r.datetime_iso <= ?
-        GROUP BY i.category
+        GROUP BY COALESCE(c.name, 'Nezaradené')
         ORDER BY total DESC
     """, (user_id, date_from_iso, date_to_iso))
 
@@ -845,7 +946,7 @@ def get_shop_monthly_expenses(user_id, date_from, date_to):
     cur = con.cursor()
 
     cur.execute("""
-        SELECT r.shop_name, COALESCE(SUM(r.prize), 0) as total
+        SELECT r.shop_name, COALESCE(SUM(r.price), 0) as total
         FROM receipts r
         WHERE r.user_id = ?
         AND r.datetime_iso >= ?
@@ -888,46 +989,39 @@ def delete_receipt(receipt_id, user_id):
 
     return deleted
 
-def get_receipt_details(receipt_id, user_id):
-    
-    con = sqlite3.connect(database)
-    cur = con.cursor()
-
-    cur.execute("""SELECT item_name, amount, category, prize FROM items
-    WHERE 
-    ORDER BY datetime_iso DESC LIMIT 5""", (receipt_id, user_id))
-
-    receipts = cur.fetchall()
-    con.close()
-
 def get_items(receipt_id, user_id):
 
     con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
     cur = con.cursor()
 
     cur.execute("""
-    SELECT i.item_name, i.amount, i.prize, i.category
-    FROM items i
-    JOIN receipts r ON i.receipt_id = r.id
-    WHERE i.receipt_id = ?
-    AND r.user_id = ?""", (receipt_id, user_id))
+        SELECT 
+            i.item_name, 
+            i.amount, 
+            i.price, 
+            COALESCE(c.name, 'Nezaradené') as category
+        FROM items i
+        JOIN receipts r ON i.receipt_id = r.id
+        LEFT JOIN categories c ON i.category_id = c.id
+        WHERE i.receipt_id = ?
+        AND r.user_id = ?
+        ORDER BY i.id ASC
+    """, (receipt_id, user_id))
 
     items = cur.fetchall()
     con.close()
 
-    #naplnime itemy
     item_list = []
     for i in items:
         item = {
-            "item_name": i[0],
-            "amount": i[1],
-            "prize": i[2],
-            "category": i[3]
+            "item_name": i["item_name"],
+            "amount": i["amount"],
+            "price": i["price"],
+            "category": i["category"]
         }
-
         item_list.append(item)
 
-    #a vratime
     return item_list
 
 #na filttovanie blockov
@@ -939,10 +1033,9 @@ def get_filtered_receipts(user_id, search, date_from, date_to):
 
     #skladame query podla parametrovv
     query = """
-        SELECT id, shop_name, date, time, prize
+        SELECT id, shop_name, date, time, price
         FROM receipts
         WHERE user_id = ?
-        LIMIT 50
         """
     
     #list kde budeme ukladat parametre a nakoniec executeneme poskaldanu query
@@ -967,6 +1060,8 @@ def get_filtered_receipts(user_id, search, date_from, date_to):
     #este zoradenie 
     query += " ORDER BY datetime_iso DESC"
 
+    query += " LIMIT 50"
+
     #ziskame a zavrieme
     cur.execute(query,parameters)
     receipts = cur.fetchall()
@@ -980,9 +1075,8 @@ def get_user_settings(user_id):
     con.row_factory = sqlite3.Row
     cur = con.cursor()
 
-    #vratime meno, adresu, 2fa heslo, filtre
     cur.execute("""
-        SELECT username, email_addres, email_filters, email_scan_limit, save_attachments
+        SELECT username, email_address, email_filters, email_scan_limit, email_app_password, save_attachments
         FROM users
         WHERE id = ?
     """, (user_id,))
@@ -996,8 +1090,8 @@ def get_user_settings(user_id):
 
     return {
         "username": row["username"] if row["username"] else "",
-        "email": row["email_addres"] if row["email_addres"] else "",
-        "email_password": "",
+        "email": row["email_address"] if row["email_address"] else "",
+        "email_password": "Heslo je nastavené" if row["email_app_password"] else "Heslo ešte nie je správne nastavené",
         "email_filters": row["email_filters"] if row["email_filters"] else "",
         "email_scan_limit": row["email_scan_limit"] or 20,
         "save_attachments": bool(row["save_attachments"]) if row["save_attachments"] is not None else True
@@ -1054,14 +1148,14 @@ def update_email_settings(user_id, email, email_password, email_filters, email_s
     #ak nie je zadane heslo, zoberie sa aktualne ulozene v db
     if not email_password:
         cur.execute("""
-            SELECT email_2fa_password
+            SELECT email_app_password
             FROM users
             WHERE id = ?
         """, (user_id,))
         row = cur.fetchone()
 
-        if row and row["email_2fa_password"]:
-            encrypted_password = row["email_2fa_password"]
+        if row and row["email_app_password"]:
+            encrypted_password = row["email_app_password"]
         else:
             encrypted_password = ""
 
@@ -1070,7 +1164,7 @@ def update_email_settings(user_id, email, email_password, email_filters, email_s
 
     cur.execute("""
         UPDATE users
-        SET email_addres = ?, email_2fa_password = ?, email_filters = ?, email_scan_limit = ?, save_attachments = ?
+        SET email_address = ?, email_app_password = ?, email_filters = ?, email_scan_limit = ?, save_attachments = ?
         WHERE id = ?
     """, (email, encrypted_password, email_filters, email_scan_limit, save_attachments, user_id))
 
