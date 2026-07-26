@@ -1,18 +1,44 @@
-# Citlivé údaje a lokálne prostredie
-.env
-venv/
-
 # Python cache
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 
-# Editorové nastavenia
-.idea/
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build artifacts
+build/
+dist/
+
+# PyInstaller
+*.spec
+
+# Test and coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Type checker / linter caches
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+
+# IDEs
 .vscode/
+.idea/
 
-# Lokálne databázy a uploady
-*.db
-instance/
-uploads/
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local configuration (only if machine-specific)
+app_settings.json
+
+# Logs
+*.log

@@ -9,9 +9,14 @@ import webbrowser
 import threading
 import time
 import re
+from datetime import datetime
 
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=str(config.get_path("templates")),
+    static_folder=str(config.get_path("static")),
+)
 
 app.config['MAX_CONTENT_LENGTH'] = config.MAX_CONTENT_LENGTH
 
@@ -438,6 +443,14 @@ def upload_img():
     parsed_items = parsed_ai["items"]
     parse_method = "ai"
 
+    is_valid, validation_message = helper.validate_parsed_receipt_data(parsed_receipt, parsed_items)
+    if not is_valid:
+        os.remove(file_path)
+        return jsonify({
+            "success": False,
+            "message": validation_message
+        })
+
     #ak vsetko v poriadku ulozime do db
     receipt_id = helper.save_receipt(parsed_receipt, parsed_items, user_id, "ai")
 
@@ -468,19 +481,68 @@ def upload_manual():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     user_id = session.get('user_id')
+
+    shop_name = str(data.get("shop_name", "")).strip()
+    date = str(data.get("date", "")).strip()
+    receipt_time = str(data.get("time", "")).strip()
+    price = data.get("price")
+    items = data.get("items")
+
+    if not shop_name:
+        return jsonify({"success": False, "message": "Názov obchodu nemôže byť prázdny."}), 400
+
+    try:
+        price_float = float(price)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Celková suma musí byť číslo."}), 400
+
+    if price_float <= 0:
+        return jsonify({"success": False, "message": "Celková suma musí byť kladná."}), 400
+
+    try:
+        receipt_datetime = datetime.strptime(f"{date} {receipt_time[:5]}", "%d.%m.%Y %H:%M")
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Neplatný dátum alebo čas nákupu."}), 400
+
+    if receipt_datetime.date() > datetime.now().date():
+        return jsonify({"success": False, "message": "Dátum nákupu nemôže byť v budúcnosti."}), 400
+
+    if not isinstance(items, list) or not items:
+        return jsonify({"success": False, "message": "Bloček musí obsahovať aspoň jednu položku."}), 400
+
+    items_total = 0.0
+
+    for item in items:
+        item_name = str(item.get("item_name", "")).strip() if isinstance(item, dict) else ""
+        try:
+            item_amount = float(item.get("amount"))
+            item_price = float(item.get("price"))
+        except (AttributeError, TypeError, ValueError):
+            return jsonify({"success": False, "message": "Položky musia obsahovať platné množstvo a cenu."}), 400
+
+        if not item_name or item_amount <= 0 or item_price < 0:
+            return jsonify({"success": False, "message": "Položky obsahujú neplatné údaje."}), 400
+
+        items_total += item_price
+
+    if abs(round(items_total, 2) - round(price_float, 2)) > 0.01:
+        return jsonify({
+            "success": False,
+            "message": "Celková suma sa musí rovnať súčtu cien položiek."
+        }), 400
 
     #naplnime blocek
     receipt = {
-        "shop_name": data["shop_name"],
-        "date": data["date"],
-        "time": data["time"],
-        "price": data["price"],
+        "shop_name": shop_name,
+        "date": date,
+        "time": receipt_time,
+        "price": price_float,
     }
 
     #teraz itemy
-    items = data["items"]
+    items = items
 
     #ulozime blocek
     receipt_id = helper.save_receipt(receipt, items, user_id, "manual")

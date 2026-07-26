@@ -384,12 +384,15 @@ async function uploadManual(){
 
     //prejdeme cez vsetky a skontrolujeme
     const items = [];
+    let itemsTotal = 0;
     for (const div of itemDivs){
 
         //najdeme polozky
         const name = div.querySelector('.item_name').value.trim();
         const amount = div.querySelector('.item_amount').value;
         const itemprice = div.querySelector('.item_price').value;
+        const amountNumber = parseFloat(amount);
+        const itemPriceNumber = parseFloat(itemprice);
 
         //zvalidujeme ich
 
@@ -397,12 +400,31 @@ async function uploadManual(){
             Swal.fire({ icon: 'warning', title: 'Vypľnte všetky polia položky!' }); return;
         }
 
+        if (amountNumber <= 0 || itemPriceNumber < 0 || Number.isNaN(amountNumber) || Number.isNaN(itemPriceNumber)) {
+            Swal.fire({ icon: 'warning', title: 'Položky obsahujú neplatné údaje.' }); return;
+        }
+
+        itemsTotal += itemPriceNumber;
+
         //pushneme na koniec nasho pola
         items.push({
             item_name: name,
-            amount: parseFloat(amount),
-            price: parseFloat(itemprice),
+            amount: amountNumber,
+            price: itemPriceNumber,
         });
+    }
+
+    const totalPrice = parseFloat(price);
+    const roundedItemsTotal = Math.round(itemsTotal * 100) / 100;
+    const roundedTotalPrice = Math.round(totalPrice * 100) / 100;
+
+    if (Math.abs(roundedItemsTotal - roundedTotalPrice) > 0.01) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Nesedí celková suma',
+            text: 'Celková suma sa musí rovnať súčtu cien položiek.'
+        });
+        return;
     }
 
     //teraz posleme na flask

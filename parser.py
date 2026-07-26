@@ -83,15 +83,14 @@ def find_date(txt):
 
     return ""
         
-def find_date_coop(txt):
+def find_date_coop(text):
     pattern = r"Pokladn\.\s*dokl\.\s*\d+\/(\d{2}\.\d{2}\.\d{4})\s+\d{2}:\d{2}:\d{2}"
-
-    date = re.search(pattern, txt, re.IGNORECASE)
-
+    date = re.search(pattern, text, re.IGNORECASE)
+    
     if date:
         return date.group(1)
-
     return ""
+
 #function for getting time
 def find_time(txt):
     pattern = r"\b(\d{1,2})\s*:\s*(\d{1,2})(?:\s*:\s*\d{1,2})?\b"

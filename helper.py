@@ -15,6 +15,58 @@ cipher = Fernet(config.EMAIL_CREDENTIALS_KEY)
 
 #---------------------------------------------------DATABASE INSERT SELECT SECTION---------------------------
 
+def validate_parsed_receipt_data(parsed_receipt, parsed_items):
+    invalid_receipt_message = "Súbor neobsahuje informácie o pokladničnom bloku."
+
+    if not isinstance(parsed_receipt, dict):
+        return False, invalid_receipt_message
+
+    shop_name = str(parsed_receipt.get("shop_name", "")).strip()
+    date = str(parsed_receipt.get("date", "")).strip()
+    receipt_time = str(parsed_receipt.get("time", "")).strip()
+    price = parsed_receipt.get("price")
+
+    if not shop_name:
+        return False, invalid_receipt_message
+
+    try:
+        price_float = float(str(price).replace(",", "."))
+    except (TypeError, ValueError):
+        return False, invalid_receipt_message
+
+    if price_float <= 0:
+        return False, invalid_receipt_message
+
+    try:
+        receipt_datetime = datetime.strptime(f"{date} {receipt_time[:5]}", "%d.%m.%Y %H:%M")
+    except (TypeError, ValueError):
+        return False, invalid_receipt_message
+
+    if receipt_datetime.date() > datetime.now().date():
+        return False, "Dátum nákupu nemôže byť v budúcnosti."
+
+    if not isinstance(parsed_items, list) or not parsed_items:
+        return False, invalid_receipt_message
+
+    for item in parsed_items:
+        if not isinstance(item, dict):
+            return False, invalid_receipt_message
+
+        item_name = str(item.get("item_name", "")).strip()
+        if not item_name:
+            return False, invalid_receipt_message
+
+        try:
+            amount = float(str(item.get("amount")).replace(",", "."))
+            item_price = float(str(item.get("price")).replace(",", "."))
+        except (TypeError, ValueError):
+            return False, invalid_receipt_message
+
+        if amount <= 0 or item_price < 0:
+            return False, invalid_receipt_message
+
+    return True, None
+
 def encrypt_value(value):
     if not value:
         return ""
@@ -131,6 +183,14 @@ def process_pdf_receipt(file_path, user_id):
                 parsed_items = parsed_ai["items"]
                 parse_method = "ai"
 
+        is_valid, validation_message = validate_parsed_receipt_data(parsed_receipt, parsed_items)
+        if not is_valid:
+            return {
+                "success": False,
+                "error": "invalid_receipt_data",
+                "message": validation_message
+            }
+
         #ak vsetko v poriadku ulozime do db
         receipt_id = save_receipt(parsed_receipt, parsed_items, user_id, parse_method)
 
@@ -245,11 +305,12 @@ def save_receipt(parsed_receipt, parsed_items, user_id, parse_method):
         #teraz itemy
         for item in parsed_items:
 
-            if parse_method == "ai":
+            category_id = get_category_for_item(item["item_name"], user_id)
+
+            if category_id is None and parse_method in ("ai", "ai_pdf_image"):
                 category_name = item.get("category")
-                category_id = get_or_create_category_id_with_cursor(cur, category_name)
-            else:
-                category_id = get_category_for_item(item["item_name"], user_id)
+                if category_name:
+                    category_id = get_or_create_category_id_with_cursor(cur, category_name)
 
             cur.execute(
             """

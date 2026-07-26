@@ -1,8 +1,11 @@
 document.addEventListener("DOMContentLoaded", function () {
+    Chart.defaults.animation = false;
     initMonthlyChart();
     initCategoryExpensesChart();
     initShopChart();
+    
 });
+
 
 function initMonthlyChart() {
 
